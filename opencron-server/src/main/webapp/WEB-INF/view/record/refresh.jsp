@@ -2,14 +2,21 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="cron"  uri="http://www.opencron.org"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+<%
+    String port = request.getServerPort() == 80 ? "" : (":"+request.getServerPort());
+    String path = request.getContextPath().replaceAll("/$","");
+    String contextPath = request.getScheme()+"://"+request.getServerName()+port+path;
+    pageContext.setAttribute("contextPath",contextPath);
+%>
+
 
 <c:forEach var="r" items="${pageBean.result}" varStatus="index">
     <tr>
         <td>
             <c:if test="${empty r.jobName}">batchJob</c:if>
-            <c:if test="${!empty r.jobName}"><a href="${contextPath}/job/detail?id=${r.jobId}&csrf=${csrf}">${r.jobName}</a></c:if>
+            <c:if test="${!empty r.jobName}"><a href="${contextPath}/job/detail/${r.jobId}.htm?csrf=${csrf}">${r.jobName}</a></c:if>
         </td>
-        <td><a href="${contextPath}/agent/detail?id=${r.agentId}&csrf=${csrf}">${r.agentName}</a></td>
+        <td><a href="${contextPath}/agent/detail/${r.agentId}.htm?csrf=${csrf}">${r.agentName}</a></td>
         <td>
             <div class="progress progress-striped progress-success active" style="margin-top:3px;width: 80%;height: 14px;" >
                 <div style="width:100%;height: 100%;" class="progress-bar">
@@ -27,10 +34,9 @@
             <c:if test="${r.execType eq 2}"><span class="label label-warning">&nbsp;&nbsp;重&nbsp;跑&nbsp;&nbsp;</span></c:if>
             <c:if test="${r.execType eq 3}"><span class="label label-default" style="color: green;font-weight:bold">&nbsp;&nbsp;现&nbsp;场&nbsp;&nbsp;</span></c:if>
         </td>
-        <td title="${cron:escapeHtml(r.command)}">
+        <td style="width: 25%" title="${cron:escapeHtml(r.command)}">
             <div class="opencron_command">${cron:escapeHtml(r.command)}</div>
         </td>
-
         <td><fmt:formatDate value="${r.startTime}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
         <td>${cron:diffdate(r.startTime,r.endTime)}</td>
         <td>

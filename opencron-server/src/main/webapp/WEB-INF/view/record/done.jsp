@@ -7,8 +7,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-
     <style type="text/css">
         table{
             border-collapse: collapse;
@@ -38,14 +36,10 @@
             text-align:center;
             font-size: 10px;
         }
-        .opencron_command{display: none;overflow:hidden; text-overflow:ellipsis; white-space: nowrap;}
     </style>
 
     <script type="text/javascript">
-        function rewidth() {
-            var width = $(window).width();
-            $(".opencron_command").show().css("width",500+(width-1500)+"px");
-        }
+
 
         $(document).ready(function(){
             $("#size").change(function(){doUrl();});
@@ -64,7 +58,7 @@
             var agentId = $("#agentId").val();
             var jobId = $("#jobId").val();
             var execType = $("#execType").val();
-            window.location.href = "${contextPath}/record/done?queryTime=" + queryTime + "&success=" + success + "&agentId=" + agentId + "&jobId=" + jobId + "&execType=" + execType + "&pageSize=" + pageSize+"&csrf=${csrf}";
+            window.location.href = "${contextPath}/record/done.htm?queryTime=" + queryTime + "&success=" + success + "&agentId=" + agentId + "&jobId=" + jobId + "&execType=" + execType + "&pageSize=" + pageSize+"&csrf=${csrf}";
         }
 
         function showRedo(id,length,groupId,count){
@@ -178,14 +172,17 @@
         }
 
     </script>
+
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -201,7 +198,7 @@
         <div>
             <div style="float: left">
                 <label>
-                    每页 <select size="1" class="select-self" id="size" style="width: 50px;">
+                    每页 <select size="1" class="select-opencron" id="size" style="width: 50px;">
                     <option value="15">15</option>
                     <option value="30" ${pageBean.pageSize eq 30 ? 'selected' : ''}>30</option>
                     <option value="50" ${pageBean.pageSize eq 50 ? 'selected' : ''}>50</option>
@@ -212,7 +209,7 @@
 
             <div style="float: right;margin-bottom: 10px">
                 <label for="agentId">执行器：</label>
-                <select id="agentId" name="agentId" class="select-self" style="width: 110px;">
+                <select id="agentId" name="agentId" class="select-opencron" style="width: 110px;">
                     <option value="">全部</option>
                     <c:forEach var="d" items="${agents}">
                         <option value="${d.agentId}" ${d.agentId eq agentId ? 'selected' : ''}>${d.name}</option>
@@ -220,7 +217,7 @@
                 </select>
                 &nbsp;&nbsp;&nbsp;
                 <label for="jobId">任务名称：</label>
-                <select id="jobId" name="jobId" class="select-self" style="width: 110px;">
+                <select id="jobId" name="jobId" class="select-opencron" style="width: 110px;">
                     <option value="">全部</option>
                     <c:forEach var="t" items="${jobs}">
                         <option value="${t.jobId}" ${t.jobId eq jobId ? 'selected' : ''}>${t.jobName}&nbsp;</option>
@@ -228,7 +225,7 @@
                 </select>
                 &nbsp;&nbsp;&nbsp;
                 <label for="success">执行状态：</label>
-                <select id="success" name="success" class="select-self" style="width: 80px;">
+                <select id="success" name="success" class="select-opencron" style="width: 80px;">
                     <option value="">全部</option>
                     <option value="1" ${success eq 1 ? 'selected' : ''}>成功</option>
                     <option value="0" ${success eq 0 ? 'selected' : ''}>失败</option>
@@ -237,7 +234,7 @@
                 </select>
                 &nbsp;&nbsp;&nbsp;
                 <label for="execType">执行方式：</label>
-                <select id="execType" name="execType" class="select-self" style="width: 80px;">
+                <select id="execType" name="execType" class="select-opencron" style="width: 80px;">
                     <option value="">全部</option>
                     <option value="0" ${execType eq 0 ? 'selected' : ''}>自动</option>
                     <option value="1" ${execType eq 1 ? 'selected' : ''}>手动</option>
@@ -246,7 +243,7 @@
                 </select>
                 &nbsp;&nbsp;&nbsp;
                 <label for="queryTime">开始时间：</label>
-                <input type="text" id="queryTime" name="queryTime" value="${queryTime}" onfocus="WdatePicker({onpicked:function(){doUrl(); },dateFmt:'yyyy-MM-dd'})" class="Wdate select-self" style="width: 90px"/>
+                <input type="text" id="queryTime" name="queryTime" value="${queryTime}" onfocus="WdatePicker({onpicked:function(){doUrl(); },dateFmt:'yyyy-MM-dd'})" class="Wdate select-opencron" style="width: 90px"/>
             </div>
         </div>
 
@@ -309,8 +306,9 @@
                             </td>
                         </c:if>
                         <td>${r.agentName}</td>
-
-                        <td title="${cron:escapeHtml(r.command)}"><div class="opencron_command">${cron:escapeHtml(r.command)}</div></td>
+                        <td style="width: 25%" title="${cron:escapeHtml(r.command)}">
+                            <div class="opencron_command">${cron:escapeHtml(r.command)}</div>
+                        </td>
                         <td><fmt:formatDate value="${r.startTime}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
                         <td>${cron:diffdate(r.startTime,r.endTime)}</td>
                         <td>
@@ -350,7 +348,7 @@
                                             <i aria-hidden="true" class="fa fa-chevron-down groupIcon_${r.groupId}" redoOpen="off" id="redoIcon_${r.recordId}"></i>
                                         </a>&nbsp;&nbsp;
                                     </c:if>
-                                    <a href="${contextPath}/record/detail?id=${r.recordId}&csrf=${csrf}" title="查看详情">
+                                    <a href="${contextPath}/record/detail/${r.recordId}.htm?csrf=${csrf}" title="查看详情">
                                         <i class="glyphicon glyphicon-eye-open"></i>
                                     </a>&nbsp;&nbsp;
                                 </div>
@@ -362,7 +360,9 @@
                         <c:forEach var="rc" items="${r.childRecord}" varStatus="index">
                             <tr class="redoGroup_${r.recordId} groupRecord_${r.groupId}" style="display: none;">
                                 <td class="${index.count eq 1 ? (r.redoCount eq index.count ? "redo-first" : "redo-first-top") : (r.redoCount eq index.count ? "redo-first-bottom" : "")}" >${rc.agentName}</td>
-                                <td title="${cron:escapeHtml(rc.command)}"><div class="opencron_command">${cron:escapeHtml(rc.command)}</div> </td>
+                                <td style="width: 25%" title="${cron:escapeHtml(rc.command)}">
+                                    <div class="opencron_command">${cron:escapeHtml(rc.command)}</div>
+                                </td>
                                 <td><fmt:formatDate value="${rc.startTime}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
                                 <td>${cron:diffdate(rc.startTime,rc.endTime)}</td>
                                 <td>
@@ -387,7 +387,7 @@
                                 <td class="${index.count eq 1 ? (r.redoCount eq index.count ? "redo-last" : "redo-last-top") : (r.redoCount eq index.count ? "redo-last-bottom" : "")}" >
                                     <center>
                                         <div class="visible-md visible-lg hidden-sm hidden-xs action-buttons">
-                                                <a href="${contextPath}/record/detail?id=${rc.recordId}&csrf=${csrf}" title="查看详情">
+                                                <a href="${contextPath}/record/detail/${rc.recordId}.htm?csrf=${csrf}" title="查看详情">
                                                     <i class="glyphicon glyphicon-eye-open"></i>
                                                 </a>&nbsp;&nbsp;
                                         </div>
@@ -402,7 +402,9 @@
 
                             <tr class="flowGroup_${r.recordId} tr-flow_${empty r.groupId ? "" : r.groupId+index.count}" style="display: none;">
                                 <td>${t.agentName}</td>
-                                <td title="${cron:escapeHtml(t.command)}"><div class="opencron_command">${cron:escapeHtml(t.command)}</div></td>
+                                <td style="width: 25%" title="${cron:escapeHtml(t.command)}">
+                                    <div class="opencron_command">${cron:escapeHtml(t.command)}</div>
+                                </td>
                                 <td><fmt:formatDate value="${t.startTime}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
                                 <td>${cron:diffdate(t.startTime,t.endTime)}</td>
                                 <td>
@@ -433,7 +435,7 @@
                                                     <i aria-hidden="true" class="fa fa-chevron-down groupIcon_${r.groupId}" redoOpen="off" id="redoIcon_${t.recordId}"></i>
                                                 </a>&nbsp;&nbsp;
                                             </c:if>
-                                            <a href="${contextPath}/record/detail?id=${t.recordId}&csrf=${csrf}" title="查看详情">
+                                            <a href="${contextPath}/record/detail/${t.recordId}.htm?csrf=${csrf}" title="查看详情">
                                                 <i class="glyphicon glyphicon-eye-open"></i>
                                             </a>&nbsp;&nbsp;
                                         </div>
@@ -445,7 +447,9 @@
                                 <c:forEach var="tc" items="${t.childRecord}" varStatus="index">
                                     <tr class="redoGroup_${t.recordId} groupRecord_${r.groupId}" style="display: none;">
                                         <td class="${index.count eq 1 ? (t.redoCount eq index.count ? "redo-first" : "redo-first-top") : (t.redoCount eq index.count ? "redo-first-bottom" : "")} ">${tc.agentName}</td>
-                                        <td title="${cron:escapeHtml(tc.command)}"><div class="opencron_command">${cron:escapeHtml(tc.command)}</div></td>
+                                        <td style="width: 25%" title="${cron:escapeHtml(tc.command)}">
+                                            <div class="opencron_command">${cron:escapeHtml(tc.command)}</div>
+                                        </td>
                                         <td><fmt:formatDate value="${tc.startTime}" pattern="yyyy-MM-dd HH:mm:ss"/></td>
                                         <td>${cron:diffdate(tc.startTime,tc.endTime)}</td>
                                         <td>
@@ -467,7 +471,7 @@
                                         <td class="${index.count eq 1 ? (t.redoCount eq index.count ? "redo-last" : "redo-last-top") : (t.redoCount eq index.count ? "redo-last-bottom" : "")}" >
                                             <center>
                                                 <div class="visible-md visible-lg hidden-sm hidden-xs action-buttons">
-                                                        <a href="${contextPath}/record/detail?id=${tc.recordId}&csrf=${csrf}" title="查看详情">
+                                                        <a href="${contextPath}/record/detail/${tc.recordId}.htm?csrf=${csrf}" title="查看详情">
                                                             <i class="glyphicon glyphicon-eye-open"></i>
                                                         </a>&nbsp;&nbsp;
                                                 </div>
@@ -481,10 +485,11 @@
                 </tbody>
             </c:forEach>
         </table>
-        <cron:pager href="${contextPath}/record/done?queryTime=${queryTime}&success=${success}&agentId=${agentId}&jobId=${jobId}&execType=${execType}&csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
+        <cron:pager href="${contextPath}/record/done.htm?queryTime=${queryTime}&success=${success}&agentId=${agentId}&jobId=${jobId}&execType=${execType}&csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

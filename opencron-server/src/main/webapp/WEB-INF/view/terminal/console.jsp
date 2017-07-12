@@ -2,37 +2,38 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="cron" uri="http://www.opencron.org" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <!--base-->
-    <link rel="shortcut icon" href="${contextPath}/img/terminal.png" />
-    <script type="text/javascript" src="${contextPath}/js/jquery.min.js?resId=${resourceId}"></script> <!-- jQuery Library -->
-    <link rel="stylesheet" href="${contextPath}/css/font-awesome.css?resId=${resourceId}" >
-    <link rel="stylesheet" href="${contextPath}/css/font-awesome-ie7.min.css?resId=${resourceId}" >
-    <link rel="stylesheet" href='${contextPath}/css/sweetalert.css?resId=${resourceId}' >
-    <script type="text/javascript" src="${contextPath}/js/sweetalert.min.js?resId=${resourceId}"></script>
+    <link rel="shortcut icon" href="${contextPath}/static/img/terminal.png" />
+    <script type="text/javascript" src="${contextPath}/static/js/jquery.min.js?resId=${resourceId}"></script> <!-- jQuery Library -->
+    <link rel="stylesheet" href="${contextPath}/static/css/font-awesome.css?resId=${resourceId}" >
+    <link rel="stylesheet" href="${contextPath}/static/css/font-awesome-ie7.min.css?resId=${resourceId}" >
+    <link rel="stylesheet" href='${contextPath}/static/css/sweetalert.css?resId=${resourceId}' >
+    <script type="text/javascript" src="${contextPath}/static/js/sweetalert.min.js?resId=${resourceId}"></script>
 
     <!-- Bootstrap -->
-    <link rel="stylesheet" href="${contextPath}/css/bootstrap.css?resId=${resourceId}" >
-    <script type="text/javascript" src="${contextPath}/js/bootstrap.js?resId=${resourceId}"></script>
+    <link rel="stylesheet" href="${contextPath}/static/css/bootstrap.css?resId=${resourceId}" >
+    <script type="text/javascript" src="${contextPath}/static/js/bootstrap.js?resId=${resourceId}"></script>
 
     <!--fileinput-->
-    <link href="${contextPath}/js/fileinput/css/fileinput.css" media="all" rel="stylesheet" type="text/css" />
-    <script type="text/javascript" src="${contextPath}/js/fileinput/js/fileinput.js?resId=${resourceId}" ></script>
-    <script type="text/javascript" src="${contextPath}/js/fileinput/js/locales/zh.js?resId=${resourceId}"></script>
-    <link rel="stylesheet" href="${contextPath}/css/opencron.term.css?resId=${resourceId}" >
+    <link href="${contextPath}/static/js/fileinput/css/fileinput.css" media="all" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="${contextPath}/static/js/fileinput/js/fileinput.js?resId=${resourceId}" ></script>
+    <script type="text/javascript" src="${contextPath}/static/js/fileinput/js/locales/zh.js?resId=${resourceId}"></script>
+    <link rel="stylesheet" href="${contextPath}/static/css/opencron.term.css?resId=${resourceId}" >
 
     <!--term-->
-    <link type="text/css" rel="stylesheet" href="${contextPath}/js/xterm/xterm.css?resId=${resourceId}">
-    <link type="text/css" rel="stylesheet" href="${contextPath}/js/xterm/addons/fullscreen/fullscreen.css?resId=${resourceId}" />
+    <link type="text/css" rel="stylesheet" href="${contextPath}/static/js/xterm/xterm.css?resId=${resourceId}">
+    <link type="text/css" rel="stylesheet" href="${contextPath}/static/js/xterm/addons/fullscreen/fullscreen.css?resId=${resourceId}" />
 
-    <script src="${contextPath}/js/xterm/xterm.js?resId=${resourceId}" type="text/javascript"></script>
-    <script src="${contextPath}/js/xterm/addons/attach/attach.js?resId=${resourceId}" type="text/javascript"></script>
-    <script src="${contextPath}/js/xterm/addons/fit/fit.js?resId=${resourceId}" type="text/javascript"></script>
-    <script src="${contextPath}/js/xterm/addons/fullscreen/fullscreen.js?resId=${resourceId}" type="text/javascript"></script>
-    <script src="${contextPath}/js/opencron.term.js?resId=${resourceId}" type="text/javascript" ></script>
-    <script type="text/javascript" src="${contextPath}/js/opencron.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/xterm/xterm.js?resId=${resourceId}" type="text/javascript"></script>
+    <script src="${contextPath}/static/js/xterm/addons/attach/attach.js?resId=${resourceId}" type="text/javascript"></script>
+    <script src="${contextPath}/static/js/xterm/addons/fit/fit.js?resId=${resourceId}" type="text/javascript"></script>
+    <script src="${contextPath}/static/js/xterm/addons/fullscreen/fullscreen.js?resId=${resourceId}" type="text/javascript"></script>
+    <script src="${contextPath}/static/js/opencron.term.js?resId=${resourceId}" type="text/javascript" ></script>
+    <script type="text/javascript" src="${contextPath}/static/js/opencron.js?resId=${resourceId}"></script>
 
     <title>opencron Terminal</title>
 </head>
@@ -48,7 +49,7 @@
                 <li class="dropdown">
                     <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown" title="常用操作"><i aria-hidden="true" class="fa fa-server"></i>&nbsp;操作<b class="caret"></b></a>
                     <ul class="dropdown-menu" >
-                        <li><a href="${contextPath}/terminal/reopen?token=${token}&csrf=${csrf}" target="_blank" title="克隆会话">&nbsp;克隆会话</a></li>
+                        <li><a href="${contextPath}/terminal/reopen.htm?token=${token}&csrf=${csrf}" target="_blank" title="克隆会话">&nbsp;克隆会话</a></li>
                         <li><a href="javascript:upload()" title="上传文件">&nbsp;上传文件</a></li>
                     </ul>
                 </li>
@@ -57,7 +58,7 @@
                     <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown" title="打开终端"><i aria-hidden="true" class="fa fa-folder-open-o"></i>&nbsp;打开<b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <c:forEach var="t" items="${terms}">
-                            <li><a href="${contextPath}/terminal/ssh2?id=${t.id}&csrf=${csrf}" target="_blank">${t.name}(${t.host})</a></li>
+                            <li><a href="${contextPath}/terminal/ssh2.htm?id=${t.id}&csrf=${csrf}" target="_blank">${t.name}(${t.host})</a></li>
                         </c:forEach>
                     </ul>
                 </li>
@@ -129,7 +130,7 @@
             language: 'zh',
             showPreview : true,
             browseOnZoneClick:false,
-            uploadUrl : '${contextPath}/terminal/upload',
+            uploadUrl : '${contextPath}/terminal/upload.do',
             removeLabel : "删除",
             showCaption: true, //是否显示标题,
             dropZoneEnabled:true,

@@ -6,7 +6,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
     <script type="text/javascript">
 
         $(document).ready(function(){
@@ -17,18 +16,19 @@
             var agentId = $("#agentId").val();
             var sendTime = $("#sendTime").val();
             var pageSize = $("#size").val();
-            window.location.href = "${contextPath}/notice/view?agentId="+agentId+"&sendTime="+sendTime+"&pageSize="+pageSize+"&csrf=${csrf}";
+            window.location.href = "${contextPath}/notice/view.htm?agentId="+agentId+"&sendTime="+sendTime+"&pageSize="+pageSize+"&csrf=${csrf}";
         }
 
     </script>
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -43,7 +43,7 @@
         <div>
             <div style="float: left">
                 <label>
-                    每页 <select size="1" class="select-self" id="size" style="width: 50px;">
+                    每页 <select size="1" class="select-opencron" id="size" style="width: 50px;">
                     <option value="15">15</option>
                     <option value="30" ${pageBean.pageSize eq 30 ? 'selected' : ''}>30</option>
                     <option value="50" ${pageBean.pageSize eq 50 ? 'selected' : ''}>50</option>
@@ -54,7 +54,7 @@
 
             <div style="float: right;margin-top: -10px">
                 <label for="agentId">执行器：</label>
-                <select id="agentId" name="agentId" class="select-self" style="width: 120px;">
+                <select id="agentId" name="agentId" class="select-opencron" style="width: 120px;">
                     <option value="">全部</option>
                     <c:forEach var="w" items="${agents}">
                         <option value="${w.agentId}" ${w.agentId eq agentId ? 'selected' : ''}>${w.name}</option>
@@ -62,7 +62,7 @@
                 </select>
                 &nbsp;
                 <label for="sendTime">发送时间：</label>
-                <input type="text" id="sendTime" name="sendTime" value="${sendTime}" onfocus="WdatePicker({onpicked:function(){doUrl(); },dateFmt:'yyyy-MM-dd'})" class="Wdate select-self" style="width: 90px"/>
+                <input type="text" id="sendTime" name="sendTime" value="${sendTime}" onfocus="WdatePicker({onpicked:function(){doUrl(); },dateFmt:'yyyy-MM-dd'})" class="Wdate select-opencron" style="width: 90px"/>
                 
                 <button type="button" onclick="history.back()" class="btn btn-sm m-t-10" style="margin-left: 50px;margin-bottom: 8px"><i class="icon">&#61740;</i>&nbsp;返回</button>
             </div>
@@ -96,7 +96,7 @@
                     <td>${log.sendTime}</td>
                     <td>
                         <center>
-                            <a href="${contextPath}/notice/detail?logId=${log.logId}&csrf=${csrf}" title="查看详情">
+                            <a href="${contextPath}/notice/detail/${log.logId}.htm?csrf=${csrf}" title="查看详情">
                                 <i class="glyphicon glyphicon-eye-open"></i>
                             </a>
                         </center>
@@ -106,11 +106,12 @@
             </tbody>
         </table>
 
-        <cron:pager href="${contextPath}/notice/view?agentId=${agentId}&sendTime=${sendTime}&csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
+        <cron:pager href="${contextPath}/notice/view.htm?agentId=${agentId}&sendTime=${sendTime}&csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
 
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

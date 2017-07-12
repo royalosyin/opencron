@@ -2,13 +2,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="cron" uri="http://www.opencron.org" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%
+    String port = request.getServerPort() == 80 ? "" : (":"+request.getServerPort());
+    String path = request.getContextPath().replaceAll("/$","");
+    String contextPath = request.getScheme()+"://"+request.getServerName()+port+path;
+    pageContext.setAttribute("contextPath",contextPath);
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <link rel="shortcut icon" href="${contextPath}/img/favicon.ico?resId=${resourceId}" />
+    <link rel="shortcut icon" href="${contextPath}/static/img/favicon.ico?resId=${resourceId}" />
     <title>Opencron 404</title>
-    <style style="text/css">
+    <style type="text/css">
         * {
             margin: 0;
             padding: 0;
@@ -164,7 +170,7 @@
 
 <body>
 <div class="whole">
-    <img src="${contextPath}/img/back.jpg" />
+    <img src="${contextPath}/static/img/back.jpg" />
     <div class="mask"></div>
 </div>
 <div class="b">

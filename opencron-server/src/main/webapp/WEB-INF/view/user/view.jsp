@@ -6,7 +6,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<jsp:include page="/WEB-INF/common/resource.jsp"/>
 
     <script type="text/javascript">
 
@@ -14,7 +13,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/user/pwdpage",
+                url:"${contextPath}/user/get.do",
                 data:{"id":id},
                 success : function(obj) {
                     $("#pwdform")[0].reset();
@@ -69,7 +68,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/user/editpwd",
+                url:"${contextPath}/user/pwd.do",
                 data:{
                     "id":id,
                     "pwd0":calcMD5(pwd0),
@@ -77,7 +76,7 @@
                     "pwd2":calcMD5(pwd2)
                 },
                 success:function(data){
-                    if (data == "success"){
+                    if (data == "true"){
                         $('#pwdModal').modal('hide');
                         alertMsg("修改成功");
                         return false;
@@ -102,7 +101,7 @@
         $(document).ready(function(){
             $("#size").change(function(){
                 var pageSize = $("#size").val();
-                window.location.href = "${contextPath}/user/view?pageSize="+pageSize+"&csrf=${csrf}";
+                window.location.href = "${contextPath}/user/view.htm?pageSize="+pageSize+"&csrf=${csrf}";
             });
 
             $("#pwd1").change(function(){
@@ -138,13 +137,14 @@
     </script>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -158,7 +158,7 @@
 
         <div style="float: left">
             <label>
-                每页 <select size="1" class="select-self" id="size" style="width: 50px;">
+                每页 <select size="1" class="select-opencron" id="size" style="width: 50px;">
                 <option value="15">15</option>
                 <option value="30" ${pageBean.pageSize eq 30 ? 'selected' : ''}>30</option>
                 <option value="50" ${pageBean.pageSize eq 50 ? 'selected' : ''}>50</option>
@@ -168,7 +168,7 @@
         </div>
 
         <div style="float: right;margin-top: -10px">
-            <a href="${contextPath}/user/addpage?csrf=${csrf}" class="btn btn-sm m-t-10" style="margin-left: 50px;margin-bottom: 8px"><i class="icon">&#61943;</i>添加</a>
+            <a href="${contextPath}/user/add.htm?csrf=${csrf}" class="btn btn-sm m-t-10" style="margin-left: 50px;margin-bottom: 8px"><i class="icon">&#61943;</i>添加</a>
         </div>
 
         <table class="table tile textured">
@@ -188,7 +188,7 @@
 
             <c:forEach var="u" items="${pageBean.result}" varStatus="index">
                 <tr>
-                    <td><center>${u.userName}</center></td>
+                    <td>${u.userName}</td>
                     <td>${u.roleName}</td>
                     <td>${u.realName}</td>
                     <td>${u.contact}</td>
@@ -199,10 +199,10 @@
                             <a href="#" onclick="editPwd('${u.userId}')" title="修改密码">
                                 <i class="glyphicon glyphicon-lock"></i>
                             </a>&nbsp;&nbsp;
-                            <a href="${contextPath}/user/editpage?id=${u.userId}&csrf=${csrf}" title="编辑资料">
+                            <a href="${contextPath}/user/edit/${u.userId}.htm?csrf=${csrf}" title="编辑资料">
                                 <i class="glyphicon glyphicon-pencil"></i>
                             </a>&nbsp;&nbsp;
-                            <a href="${contextPath}/user/detail?userId=${u.userId}&csrf=${csrf}" title="查看详情">
+                            <a href="${contextPath}/user/detail/${u.userId}.htm?csrf=${csrf}" title="查看详情">
                                 <i class="glyphicon glyphicon-eye-open"></i>
                             </a>
                         </center>
@@ -212,7 +212,7 @@
             </tbody>
         </table>
 
-        <cron:pager href="${contextPath}/user/view?csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
+        <cron:pager href="${contextPath}/user/view.htm?csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
 
     </div>
 
@@ -221,7 +221,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4>修改密码</h4>
                 </div>
                 <div class="modal-body">
@@ -258,6 +258,8 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+
+</body>
+
+</html>

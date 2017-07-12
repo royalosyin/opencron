@@ -5,16 +5,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
+    <script src="${contextPath}/static/js/echarts.min.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/highcharts/js/highcharts.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/highcharts/js/highcharts-more.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/highcharts/js/highcharts-3d.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/highcharts/js/modules/exporting.js?resId=${resourceId}"></script>
 
-    <script src="${contextPath}/js/echarts.min.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/highcharts/js/highcharts.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/highcharts/js/highcharts-more.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/highcharts/js/highcharts-3d.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/highcharts/js/modules/exporting.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/socket/socket.io.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/socket/websocket.js?resId=${resourceId}"></script>
-    <script src="${contextPath}/js/home.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/socket.io.js?resId=${resourceId}"></script>
+    <script src="${contextPath}/static/js/dashboard.js?resId=${resourceId}"></script>
 
     <style type="text/css">
 
@@ -112,8 +110,11 @@
             //跨时段查询任务运行比例
             opencronChart.query();
 
-            //系统实时监控
-            opencronChart.monitor();
+            <c:if test="${agents ne null and !empty agents}">
+                //系统实时监控
+                opencronChart.monitor();
+            </c:if>
+
 
             $("#queryChart").click(function () {
                 opencronChart.query();
@@ -208,14 +209,16 @@
 
         });
     </script>
+
 </head>
 
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+<body>
+
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -231,7 +234,7 @@
         <!-- cards -->
         <div class="row cards">
             <div class="card-container col-lg-3 col-sm-6 col-sm-12">
-                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/agent/view?csrf=${csrf}'">
+                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/agent/view.htm?csrf=${csrf}'">
                     <div class="front count">
                         <div class="media">
                             <span class="pull-left"><i style="font-size: 60px;margin-top: 0px;" aria-hidden="true" class="fa fa-desktop"></i></span>
@@ -258,7 +261,7 @@
             </div>
 
             <div class="card-container col-lg-3 col-sm-6 col-sm-12">
-                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/job/view?csrf=${csrf}'">
+                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/job/view.htm?csrf=${csrf}'">
                     <div class="front count">
                         <div class="media">
                             <span class="pull-left"><i style="font-size: 60px;margin-top: 1px;" aria-hidden="true" class="fa fa-tasks"></i></span>
@@ -285,7 +288,7 @@
             </div>
 
             <div class="card-container col-lg-3 col-sm-6 col-sm-12">
-                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/record/done?success=1&csrf=${csrf}'">
+                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/record/done.htm?success=1&csrf=${csrf}'">
                     <div class="front count">
                         <div class="media">
                             <span class="pull-left"><i style="font-size: 60px;margin-top: 0px;" class="fa fa-thumbs-o-up" aria-hidden="true"></i></span>
@@ -311,7 +314,7 @@
             </div>
 
             <div class="card-container col-lg-3 col-sm-6 col-sm-12">
-                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/record/done?success=0&csrf=${csrf}'">
+                <div class="card hover" onclick="javascript:window.location.href='${contextPath}/record/done.htm?success=0&csrf=${csrf}'">
                     <div class="front count">
                         <div class="media">
                             <span class="pull-left"><i style="font-size: 60px;margin-top: -3px;" class="fa fa-thumbs-o-down" aria-hidden="true"></i></span>
@@ -343,16 +346,16 @@
 
     <div class="block-area col-xs-12" id="record-report" style="margin-bottom: 15px;">
         <div class="textured2 col-xs-12" style="padding: 0;">
-            <div class="block-color col-xs-12" style="position:relative;border-radius: 2px;border-bottom-left-radius:0px;border-bottom-right-radius: 0px;margin-bottom:0px;">
+            <div class="block-color col-xs-12" style="position:relative;border-radius: 1px;border-bottom-left-radius:0px;border-bottom-right-radius: 0px;margin-bottom:0px;">
                 <div class="tile-title" >
                     <i aria-hidden="true" class="fa fa-bar-chart"></i>&nbsp;执行报告
                 </div>
                 <div id="timeopter">
                     <div style="float: right;margin-bottom: 0px;margin-top: -10px;margin-right:10px;">
                         <label for="startTime" class="label-self">时间&nbsp;: </label>
-                        <input type="text" style="border-radius: 2px;width: 90px" id="startTime" name="startTime" value="${startTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate select-self"/>
+                        <input type="text" style="border-radius: 1px;width: 90px" id="startTime" name="startTime" value="${startTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate"/>
                         <label for="endTime" class="label-self">&nbsp;至&nbsp;</label>
-                        <input type="text" style="border-radius: 2px;width: 90px" id="endTime" name="endTime" value="${endTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate select-self"/>&nbsp;
+                        <input type="text" style="border-radius: 1px;width: 90px" id="endTime" name="endTime" value="${endTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate"/>&nbsp;
                         <button id="queryChart" class="btn btn-default btn-sm" style="vertical-align:top;height: 25px;" type="button"><i class="glyphicon glyphicon-search"></i>查询</button>
                     </div>
                 </div>
@@ -436,25 +439,136 @@
         </div>
     </div>
 
-    <h4 class="page-title" ><i class="icon">&#61881;</i> &nbsp;监控概况</h4>
-    <!-- Main Widgets -->
-    <div class="block-area" id="monitor" style="margin-top: 0px">
+    <c:if test="${agents ne null and !empty agents}">
 
-        <div class="row">
-            <div class="col-md-12">
-                <!-- overview -->
-                <div class="tile " style="background: none">
-                    <h2 class="tile-title" style="width: 100%;background:rgba(0,0,0,0.40);border-top-left-radius:2px;border-top-right-radius:2px;"><i aria-hidden="true" class="fa fa-area-chart"></i>&nbsp;系统概况</h2>
-                    <div class="tile-config dropdown" style="float: right;">
-                        <select class="form-control input-sm m-b-10" style="width: 120px;border-radius: 2px;" id="agentId">
-                            <c:forEach var="w" items="${agents}">
-                                <option value="${w.agentId}" ${w.agentId eq agentId ? 'selected' : ''}>${w.name}</option>
-                            </c:forEach>
-                        </select>
+        <h4 class="page-title" ><i class="icon">&#61881;</i> &nbsp;监控概况</h4>
+        <!-- Main Widgets -->
+        <div class="block-area" id="monitor" style="margin-top: 0px">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <!-- overview -->
+                    <div class="tile " style="background: none">
+                        <h2 class="tile-title" style="width: 100%;background:rgba(0,0,0,0.40);border-top-left-radius:2px;border-top-right-radius:2px;"><i aria-hidden="true" class="fa fa-area-chart"></i>&nbsp;系统概况</h2>
+                        <div class="tile-config dropdown" style="float: right;">
+                            <select class="form-control input-sm m-b-10" style="width: 120px;border-radius: 1px;" id="agentId">
+                                <c:forEach var="w" items="${agents}">
+                                    <c:if test="${w.status eq true}">
+                                        <option value="${w.agentId}" ${w.agentId eq agentId ? 'selected' : ''}>${w.name}</option>
+                                    </c:if>
+                                </c:forEach>
+                            </select>
+                        </div>
+
+                        <div id="overview-chart" class="p-10 text-center div-havedata" style="background:rgba(0,0,0,0.40);border-bottom-left-radius:2px;border-bottom-right-radius:2px;height: 192px;">
+
+                            <div class="loader">
+                                <div class="loader-inner">
+                                    <div class="loader-line-wrap">
+                                        <div class="loader-line"></div>
+                                    </div>
+                                    <div class="loader-line-wrap">
+                                        <div class="loader-line"></div>
+                                    </div>
+                                    <div class="loader-line-wrap">
+                                        <div class="loader-line"></div>
+                                    </div>
+                                    <div class="loader-line-wrap">
+                                        <div class="loader-line"></div>
+                                    </div>
+                                    <div class="loader-line-wrap">
+                                        <div class="loader-line"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="p-10 text-center div-nodata"  style="background:rgba(0,0,0,0.40);border-bottom-left-radius:2px;border-bottom-right-radius:2px;height: 192px;">
+                            <div  style="font-size: 110px;" class="eye-grey">
+                                <i  class="glyphicon glyphicon-eye-close"></i>
+                                <span class="nodata">无记录</span>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
 
-                    <div id="overview-chart" class="p-10 text-center div-havedata" style="background:rgba(0,0,0,0.40);border-bottom-left-radius:2px;border-bottom-right-radius:2px;height: 192px;">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="tile textured" id="top" style="min-height: 250px">
+                        <h2 class="tile-title"><i aria-hidden="true" class="fa fa-server"></i>&nbsp;进程监控</h2>
+                        <div class="div-havedata" style="margin-left: 15px;margin-right: 15px;">
+                            <table class="table tile table-custom table-sortable " style="font-size: 13px;background-color: rgba(0,0,0,0);">
+                                <tbody id="topbody" style="color: #fafafa;font-size:12px;">
+                                <div class="loader" >
+                                    <div class="loader-inner">
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center div-nodata" style="margin-top: 20px">
+                            <div  style="font-size: 110px;" class="eye-grey">
+                                <i  class="glyphicon glyphicon-eye-close"></i>
+                                <span class="nodata">无记录</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- CPU -->
+                    <div class="tile" id="cpu">
+                        <h2 class="tile-title"><i aria-hidden="true" class="fa fa-line-chart"></i>&nbsp;CPU使用率</h2>
+                        <div class="p-t-10 p-r-5 p-b-5">
+                            <div class="div-havedata" style="height: 200px; padding: 0px; position: relative;" id="cpu-chart">
+                                <div class="loader">
+                                    <div class="loader-inner">
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                        <div class="loader-line-wrap">
+                                            <div class="loader-line"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center div-nodata" style="height: 200px;margin-top: 20px; position: relative;">
+                                <div  style="font-size: 110px;" class="eye-grey">
+                                    <i  class="glyphicon glyphicon-eye-close"></i>
+                                    <span class="nodata">无记录</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--config-->
+                <div class="col-md-4" id="info">
 
+                    <div class="tile textured">
+                        <h2 class="tile-title"><i aria-hidden="true" class="fa fa-pie-chart"></i>&nbsp;机器信息</h2>
                         <div class="loader">
                             <div class="loader-inner">
                                 <div class="loader-line-wrap">
@@ -475,196 +589,92 @@
                             </div>
                         </div>
 
-                    </div>
-
-                    <div class="p-10 text-center div-nodata"  style="background:rgba(0,0,0,0.40);border-bottom-left-radius:2px;border-bottom-right-radius:2px;height: 192px;">
-                        <div  style="font-size: 110px;" class="eye-grey">
-                            <i  class="glyphicon glyphicon-eye-close"></i>
-                            <span class="nodata">无记录</span>
+                        <div class="p-t-10 p-r-5 p-b-5 div-havedata">
+                            <div id="disk-view" class="main-chart" style="height: 250px;margin-top: 10px;"></div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                        <div class="s-widget-body div-havedata" id="disk-item"></div>
+                        <div class="listview narrow" id="config-view" style="margin-top: -17px;display: none;">
 
-        <div class="row">
-            <div class="col-md-8">
-                <div class="tile textured" id="top" style="min-height: 250px">
-                    <h2 class="tile-title"><i aria-hidden="true" class="fa fa-server"></i>&nbsp;进程监控</h2>
-                    <div class="div-havedata" style="margin-left: 15px;margin-right: 15px;">
-                        <table class="table tile table-custom table-sortable " style="font-size: 13px;background-color: rgba(0,0,0,0);">
-                            <tbody id="topbody" style="color: #fafafa;font-size:12px;">
-                            <div class="loader" >
-                                <div class="loader-inner">
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
+                            <div class="media" id="view-hostname">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-hostname"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-leaf"></i>&nbsp;&nbsp;主&nbsp;机&nbsp;名</h6>
                                 </div>
                             </div>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-center div-nodata" style="margin-top: 20px">
-                        <div  style="font-size: 110px;" class="eye-grey">
-                            <i  class="glyphicon glyphicon-eye-close"></i>
-                            <span class="nodata">无记录</span>
-                        </div>
-                    </div>
-                </div>
-                <!-- CPU -->
-                <div class="tile" id="cpu">
-                    <h2 class="tile-title"><i aria-hidden="true" class="fa fa-line-chart"></i>&nbsp;CPU使用率</h2>
-                    <div class="p-t-10 p-r-5 p-b-5">
-                        <div class="div-havedata" style="height: 200px; padding: 0px; position: relative;" id="cpu-chart">
-                            <div class="loader">
-                                <div class="loader-inner">
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
-                                    <div class="loader-line-wrap">
-                                        <div class="loader-line"></div>
-                                    </div>
+
+                            <div class="media" id="view-os">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-os"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-globe"></i>&nbsp;&nbsp;系统名称</h6>
+                                </div>
+                            </div>
+
+                            <div class="media" id="view-kernel">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-kernel"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-info-sign"></i>&nbsp;&nbsp;内核版本</h6>
+                                </div>
+                            </div>
+
+                            <div class="media" id="view-name">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-cpuinfo-name"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-star-empty"></i>&nbsp;&nbsp;CPU名称</h6>
+                                </div>
+                            </div>
+
+                            <div class="media" id="view-machine">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-machine"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-list-alt"></i>&nbsp;&nbsp;CPU架构</h6>
+                                </div>
+                            </div>
+
+                            <div class="media" id="view-cpuinfo-count">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-cpuinfo-count"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-certificate"></i>&nbsp;&nbsp;CPU核数</h6>
+                                </div>
+                            </div>
+
+                            <div class="media" id="view-cpuinfo-info">
+                                <div class="pull-right">
+                                    <div class="counts" id="config-cpuinfo-info"></div>
+                                </div>
+                                <div class="media-body">
+                                    <h6><i class="glyphicon glyphicon-fire"></i>&nbsp;&nbsp;CPU频率</h6>
                                 </div>
                             </div>
                         </div>
-                        <div class="text-center div-nodata" style="height: 200px;margin-top: 20px; position: relative;">
+
+                        <div class="listview narrow text-center div-nodata" id="config-view-nodata" style="height: 290px;padding-top: 55px">
                             <div  style="font-size: 110px;" class="eye-grey">
                                 <i  class="glyphicon glyphicon-eye-close"></i>
-                                <span class="nodata">无记录</span>
+                                <span class="nodata" >无记录</span>
                             </div>
                         </div>
                     </div>
+
                 </div>
-            </div>
-            <!--config-->
-            <div class="col-md-4" id="info">
-
-                <div class="tile textured">
-                    <h2 class="tile-title"><i aria-hidden="true" class="fa fa-pie-chart"></i>&nbsp;机器信息</h2>
-                    <div class="loader">
-                        <div class="loader-inner">
-                            <div class="loader-line-wrap">
-                                <div class="loader-line"></div>
-                            </div>
-                            <div class="loader-line-wrap">
-                                <div class="loader-line"></div>
-                            </div>
-                            <div class="loader-line-wrap">
-                                <div class="loader-line"></div>
-                            </div>
-                            <div class="loader-line-wrap">
-                                <div class="loader-line"></div>
-                            </div>
-                            <div class="loader-line-wrap">
-                                <div class="loader-line"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-t-10 p-r-5 p-b-5 div-havedata">
-                        <div id="disk-view" class="main-chart" style="height: 250px;margin-top: 10px;"></div>
-                    </div>
-                    <div class="s-widget-body div-havedata" id="disk-item"></div>
-                    <div class="listview narrow" id="config-view" style="margin-top: -17px;display: none;">
-
-                        <div class="media" id="view-hostname">
-                            <div class="pull-right">
-                                <div class="counts" id="config-hostname"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-leaf"></i>&nbsp;&nbsp;主&nbsp;机&nbsp;名</h6>
-                            </div>
-                        </div>
-
-                        <div class="media" id="view-os">
-                            <div class="pull-right">
-                                <div class="counts" id="config-os"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-globe"></i>&nbsp;&nbsp;系统名称</h6>
-                            </div>
-                        </div>
-
-                        <div class="media" id="view-kernel">
-                            <div class="pull-right">
-                                <div class="counts" id="config-kernel"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-info-sign"></i>&nbsp;&nbsp;内核版本</h6>
-                            </div>
-                        </div>
-
-                        <div class="media" id="view-name">
-                            <div class="pull-right">
-                                <div class="counts" id="config-cpuinfo-name"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-star-empty"></i>&nbsp;&nbsp;CPU名称</h6>
-                            </div>
-                        </div>
-
-                        <div class="media" id="view-machine">
-                            <div class="pull-right">
-                                <div class="counts" id="config-machine"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-list-alt"></i>&nbsp;&nbsp;CPU架构</h6>
-                            </div>
-                        </div>
-
-                        <div class="media" id="view-cpuinfo-count">
-                            <div class="pull-right">
-                                <div class="counts" id="config-cpuinfo-count"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-certificate"></i>&nbsp;&nbsp;CPU核数</h6>
-                            </div>
-                        </div>
-
-                        <div class="media" id="view-cpuinfo-info">
-                            <div class="pull-right">
-                                <div class="counts" id="config-cpuinfo-info"></div>
-                            </div>
-                            <div class="media-body">
-                                <h6><i class="glyphicon glyphicon-fire"></i>&nbsp;&nbsp;CPU频率</h6>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="listview narrow text-center div-nodata" id="config-view-nodata" style="height: 290px;padding-top: 55px">
-                        <div  style="font-size: 110px;" class="eye-grey">
-                            <i  class="glyphicon glyphicon-eye-close"></i>
-                            <span class="nodata" >无记录</span>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
-    </div>
+
+    </c:if>
 
 </section>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+</html>
 

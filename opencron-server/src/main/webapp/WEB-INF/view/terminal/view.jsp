@@ -8,8 +8,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-
     <style type="text/css">
         .error_msg {
             color: red;
@@ -23,22 +21,21 @@
         $(document).ready(function () {
             $("#size").change(function () {
                 var pageSize = $("#size").val();
-                window.location.href="${contextPath}/terminal/view?pageNo=${pageBean.pageNo}&pageSize="+pageSize+"&orderBy=${pageBean.orderBy}&order=${pageBean.order}&csrf=${csrf}";
+                window.location.href="${contextPath}/terminal/view.htm?pageNo=${pageBean.pageNo}&pageSize="+pageSize+"&orderBy=${pageBean.orderBy}&order=${pageBean.order}&csrf=${csrf}";
             });
-        })
+        });
 
         function ssh(id, type) {
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/terminal/ssh",
-                data: "id=" + id,
-                dataType: "html",
-                success: function (data) {
-                    if(data.indexOf("login")>-1){
+                url: "${contextPath}/terminal/ssh.do",
+                data: {"id":id},
+                dataType: "JSON",
+                success: function (json) {
+                    if(json&&json.toString().indexOf("login")>-1){
                         window.location.href="${contextPath}";
                     }
-                    var json = eval("(" + data + ")");
                     if (json.status == "authfail" || json.status == "keyauthfail") {
                         if (type == 2) {
                             alert("用户名密码错误,登录失败");
@@ -81,7 +78,7 @@
                                 $.ajax({
                                     headers:{"csrf":"${csrf}"},
                                     type: "POST",
-                                    url: "${contextPath}/terminal/detail",
+                                    url: "${contextPath}/terminal/detail.do",
                                     data: "id="+id,
                                     dataType: "JSON",
                                     success: function (json) {
@@ -116,9 +113,9 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/terminal/detail",
+                url: "${contextPath}/terminal/detail.do",
                 data: "id="+id,
-                dataType: "json",
+                dataType: "JSON",
                 success: function (json) {
                     $("#sshid").val(id);
                     $("#sshuser").val(json.user);
@@ -144,12 +141,12 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type: "POST",
-                    url: "${contextPath}/terminal/del",
-                    data: "id="+id,
-                    dataType: "html",
+                    url: "${contextPath}/terminal/delete.do",
+                    data: {"id":id},
+                    dataType: "JSON",
                     success: function (message) {
-                        if (message == "success") {
-                            alertMsg("删除成功!")
+                        if (message) {
+                            alertMsg("删除成功!");
                             $("#tr_" + id).remove();
                         }else {
                             alert("删除失败!")
@@ -241,17 +238,17 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type: "POST",
-                    url: "${contextPath}/terminal/exists",
+                    url: "${contextPath}/terminal/exists.do",
                     data: {
                         "host":host
                     },
-                    dataType: "html",
+                    dataType: "JSON",
                     success: function (status) {
-                        if(status=="false"){
+                        if(!status){
                             $.ajax({
                                 headers:{"csrf":"${csrf}"},
                                 type: "POST",
-                                url: "${contextPath}/terminal/save",
+                                url: "${contextPath}/terminal/save.do",
                                 data: {
                                     "name":name,
                                     "userName": user,
@@ -280,7 +277,7 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type: "POST",
-                    url: "${contextPath}/terminal/save",
+                    url: "${contextPath}/terminal/save.do",
                     data: {
                         "id":$("#sshid").val(),
                         "name":name,
@@ -326,7 +323,7 @@
         }
 
         function sortPage(field) {
-            location.href="${contextPath}/terminal/view?pageNo=${pageBean.pageNo}&pageSize=${pageBean.pageSize}&orderBy="+field+"&order="+("${pageBean.order}"=="asc"?"desc":"asc")+"&csrf=${csrf}";
+            location.href="${contextPath}/terminal/view.htm?pageNo=${pageBean.pageNo}&pageSize=${pageBean.pageSize}&orderBy="+field+"&order="+("${pageBean.order}"=="asc"?"desc":"asc")+"&csrf=${csrf}";
         }
 
     </script>
@@ -338,13 +335,14 @@
     </style>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -358,7 +356,7 @@
         <div>
             <div style="float: left">
                 <label>
-                    每页 <select size="1" class="select-self" id="size" style="width: 50px;margin-bottom: 8px">
+                    每页 <select size="1" class="select-opencron" id="size" style="width: 50px;margin-bottom: 8px">
                     <option value="15">15</option>
                     <option value="30" ${pageBean.pageSize eq 30 ? 'selected' : ''}>30</option>
                     <option value="50" ${pageBean.pageSize eq 50 ? 'selected' : ''}>50</option>
@@ -465,7 +463,7 @@
             </tbody>
         </table>
 
-        <cron:pager href="${contextPath}/terminal/view?csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
+        <cron:pager href="${contextPath}/terminal/view.htm?csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}" total="${pageBean.totalCount}"/>
 
     </div>
 
@@ -474,7 +472,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4 id="sshTitle">SSH登录</h4>
                 </div>
                 <div class="modal-body">
@@ -533,6 +531,9 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>
+
+

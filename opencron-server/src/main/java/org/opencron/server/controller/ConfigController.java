@@ -21,6 +21,7 @@
 
 package org.opencron.server.controller;
 
+import org.opencron.common.utils.DigestUtils;
 import org.opencron.server.domain.Config;
 import org.opencron.server.job.OpencronTools;
 import org.opencron.server.service.ConfigService;
@@ -29,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpSession;
 
@@ -37,7 +40,7 @@ import javax.servlet.http.HttpSession;
  */
 @Controller
 @RequestMapping("config")
-public class ConfigController  extends BaseController{
+public class ConfigController extends BaseController {
 
     @Autowired
     private ConfigService configService;
@@ -45,30 +48,38 @@ public class ConfigController  extends BaseController{
     @Autowired
     private RecordService recordService;
 
-    @RequestMapping("/view")
+    @RequestMapping("/view.htm")
     public String settings(Model model) {
         model.addAttribute("config", configService.getSysConfig());
         return "config/view";
     }
 
-    @RequestMapping("/editpage")
+    @RequestMapping("/edit.htm")
     public String editPage(Model model) {
         model.addAttribute("config", configService.getSysConfig());
         return "config/edit";
     }
 
-    @RequestMapping("/edit")
+    @RequestMapping(value = "/edit.do",method= RequestMethod.POST)
     public String edit(HttpSession session, Config config) {
-        config.setConfigId(configService.getSysConfig().getConfigId());
-        config.setTemplate(config.getTemplate());
-        config.setSendUrl(config.getSendUrl());
-        configService.update(config);
-        return "redirect:/config/view?csrf="+ OpencronTools.getCSRF(session);
+        Config cfg = configService.getSysConfig();
+        cfg.setSenderEmail(config.getSenderEmail());
+        cfg.setConfigId(configService.getSysConfig().getConfigId());
+        cfg.setTemplate(DigestUtils.passBase64(config.getTemplate()));
+        cfg.setSendUrl(DigestUtils.passBase64(config.getSendUrl()));
+        cfg.setPassword(config.getPassword());
+        cfg.setSmtpHost(config.getSmtpHost());
+        cfg.setSpaceTime(config.getSpaceTime());
+        cfg.setSmtpPort(config.getSmtpPort());
+        configService.update(cfg);
+        return "redirect:/config/view.htm?csrf=" + OpencronTools.getCSRF(session);
     }
 
-    @RequestMapping("/clear")
-    public void clearRecord(String startTime,String endTime) {
+    @RequestMapping(value = "/clear.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean clearRecord(String startTime, String endTime) {
         recordService.deleteRecordBetweenTime(startTime, endTime);
+        return true;
     }
 
 }

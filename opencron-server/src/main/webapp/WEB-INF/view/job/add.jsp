@@ -6,8 +6,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-
     <style type="text/css">
         .subJobTips {
             width:185px;
@@ -20,7 +18,7 @@
 
         .subJobUl li{
             background-color: rgba(0,0,0,0.3);
-            border-radius: 4px;
+            border-radius: 1px;
             height: 26px;
             list-style: outside none none;
             margin-top: -27px;
@@ -91,10 +89,17 @@
                 return false;
             }
 
-            if (!$("#command").val()){
+            if (!$("#commandInput").val()){
                 alert("请填写执行命令!");
                 return false;
             }
+
+            var successExit = $("#successExit").val();
+            if( successExit!=null && isNaN(successExit)) {
+                alert("自定义成功标识必须为数字");
+                return false;
+            }
+
             var redo = $('input[type="radio"][name="redo"]:checked').val();
             var reg = /^[0-9]*[1-9][0-9]*$/;
             if (redo == 1){
@@ -155,25 +160,26 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/job/checkname",
+                url:"${contextPath}/job/checkname.do",
                 data:{
-                    "name":jobName
+                    "name":jobName,
+                    "agentId":$("#agentId").val()
                 },
                 success:function(data){
-                    if (data == "yes"){
+                    if (data){
                         if (execType == 0 && cronExp){
                             $.ajax({
                                 headers:{"csrf":"${csrf}"},
                                 type:"POST",
-                                url:"${contextPath}/verify/exp",
+                                url:"${contextPath}/verify/exp.do",
                                 data:{
                                     "cronType":cronType,
                                     "cronExp":cronExp
                                 },
                                 success:function(data){
-                                    if (data == "success"){
-                                        var cmd = $("#command").val();
-                                        $("#command").val(encode(cmd));
+                                    if (data){
+                                        var cmd = $("#commandInput").val();
+                                        $("#command").val(toBase64(cmd));
                                         $("#job").submit();
                                         return false;
                                     }else {
@@ -187,8 +193,8 @@
                             });
                             return false;
                         }else {
-                            var cmd = $("#command").val();
-                            $("#command").val(encode(cmd));
+                            var cmd = $("#commandInput").val();
+                            $("#command").val(toBase64(cmd));
                             $("#job").submit();
                             return false;
                         }
@@ -255,12 +261,13 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type:"POST",
-                    url:"${contextPath}/job/checkname",
+                    url:"${contextPath}/job/checkname.do",
                     data:{
-                        "name":$("#jobName").val()
+                        "name":$("#jobName").val(),
+                        "agentId":$("#agentId").val()
                     },
                     success:function(data){
-                        if (data == "yes"){
+                        if (data){
                             $("#checkJobName").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;作业名可用' + "</font>");
                             return false;
                         }else {
@@ -295,13 +302,13 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type:"POST",
-                    url:"${contextPath}/verify/exp",
+                    url:"${contextPath}/verify/exp.do",
                     data:{
                         "cronType":cronType,
                         "cronExp":cronExp
                     },
                     success:function(data){
-                        if (data == "success"){
+                        if (data){
                             $("#checkcronExp").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;语法正确' + "</font>");
                             return;
                         }else {
@@ -359,6 +366,12 @@
                 return false;
             }
 
+            var successExit = $("#successExit1").val();
+            if( successExit!=null && isNaN(successExit)) {
+                alert("自定义成功标识必须为数字");
+                return false;
+            }
+
             var redo = $('#itemRedo').val();
 
             var reg = /^[0-9]*[1-9][0-9]*$/;
@@ -385,13 +398,13 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/job/checkname",
+                url:"${contextPath}/job/checkname.do",
                 data:{
                     "name":jobName,
-                    "agentId":$("#agentId1").val()
+                    "agentId":$("#agentId").val()
                 },
                 success:function(data){
-                    if (data == "no"){
+                    if (!data){
                         alert("作业名已存在!");
                         return false;
                     }else {
@@ -402,10 +415,12 @@
                                     "<input type='hidden' name='child.jobId' value=''>"+
                                     "<input type='hidden' name='child.jobName' value='"+escapeHtml(jobName)+"'>"+
                                     "<input type='hidden' name='child.agentId' value='"+$("#agentId1").val()+"'>"+
-                                    "<input type='hidden' name='child.command' value='"+ encode($("#command1").val())+"'>"+
+                                    "<input type='hidden' name='child.command' value='"+ toBase64($("#command1").val())+"'>"+
                                     "<input type='hidden' name='child.redo' value='"+$('#itemRedo').val()+"'>"+
                                     "<input type='hidden' name='child.runCount' value='"+$("#runCount1").val()+"'>"+
                                     "<input type='hidden' name='child.timeout' value='"+$("#timeout1").val()+"'>"+
+                                    "<input type='hidden' name='child.runAs' value='"+$("#runAs1").val()+"'>"+
+                                    "<input type='hidden' name='child.successExit' value='"+$("#successExit1").val()+"'>"+
                                     "<input type='hidden' name='child.comment' value='"+escapeHtml($("#comment1").val())+"'>"
                             "</li>";
                             $("#subJobDiv").append($(addHtml));
@@ -425,11 +440,19 @@
                                     $(element).attr("value",$("#runCount1").val());
                                 }
 
+                                if ($(element).attr("name") == "child.successExit") {
+                                    $(element).attr("value",$("#successExit1").val());
+                                }
+
+                                if ($(element).attr("name") == "child.runAs") {
+                                    $(element).attr("value",$("#runAs1").val());
+                                }
+
                                 if ($(element).attr("name") == "child.agentId"){
                                     $(element).attr("value",$("#agentId1").val());
                                 }
                                 if ($(element).attr("name") == "child.command"){
-                                    $(element).attr("value", encode($("#command1").val()));
+                                    $(element).attr("value", toBase64($("#command1").val()));
                                 }
 
                                 if ($(element).attr("name") == "child.timeout"){
@@ -468,8 +491,17 @@
                     $("#agentId1").val($(element).val());
                 }
                 if ($(element).attr("name") == "child.command"){
-                    $("#command1").val(decode($(element).val()));
+                    $("#command1").val(passBase64($(element).val()));
                 }
+
+                if ($(element).attr("name") == "child.runAs"){
+                    $("#runAs1").val($(element).val());
+                }
+
+                if ($(element).attr("name") == "child.successExit"){
+                    $("#successExit1").val($(element).val());
+                }
+
                 if ($(element).attr("name") == "child.redo") {
                     itemRedo($("#itemRedo").val()||$(element).val());
                 }
@@ -516,13 +548,13 @@
     </script>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
 
+<body>
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -540,8 +572,9 @@
 
     <div class="block-area" id="basic">
         <div class="tile p-15 textured">
-            <form class="form-horizontal" role="form" id="job" action="${contextPath}/job/save" method="post"></br>
+            <form class="form-horizontal" role="form" id="job" action="${contextPath}/job/save.do" method="post"></br>
                 <input type="hidden" name="csrf" value="${csrf}">
+                <input type="hidden" name="command" id="command">
                 <div class="form-group">
                     <label for="agentId" class="col-lab control-label"><i class="glyphicon glyphicon-leaf"></i>&nbsp;&nbsp;执&nbsp;&nbsp;行&nbsp;&nbsp;器：</label>
                     <div class="col-md-10">
@@ -596,18 +629,46 @@
                 </div><br>
 
                 <div class="form-group">
-                    <label for="command" class="col-lab control-label"><i class="glyphicon glyphicon-th-large"></i>&nbsp;&nbsp;执行命令：</label>
+                    <label for="commandInput" class="col-lab control-label"><i class="glyphicon glyphicon-th-large"></i>&nbsp;&nbsp;执行命令：</label>
                     <div class="col-md-10">
-                        <textarea class="form-control input-sm" id="command" name="command" style="height:80px;"></textarea>
+                        <textarea class="form-control input-sm" id="commandInput" style="height:200px;resize:vertical"></textarea>
                         <span class="tips"><b>*&nbsp;</b>请采用unix/linux的shell支持的命令</span>
                     </div>
                 </div><br>
 
-                <div class="form-group">
-                    <label class="col-lab control-label"><i class="glyphicon  glyphicon glyphicon-forward"></i>&nbsp;&nbsp;重新执行：</label>
+               <%-- <div class="form-group">
+                    <label class="col-lab control-label"><i class="glyphicons glyphicons-saw-blade"></i>&nbsp;&nbsp;命令类型：</label>
                     <div class="col-md-10">
-                        <label onclick="showCountDiv()" for="redo01" class="radio-label"><input type="radio" name="redo" value="1" id="redo01" checked>是&nbsp;&nbsp;&nbsp;</label>
-                        <label onclick="hideCountDiv()" for="redo00" class="radio-label"><input type="radio" name="redo" value="0" id="redo00">否</label>&nbsp;&nbsp;&nbsp;
+                        <label for="script-shell" class="radio-label"><input type="radio" name="scriptType" id="script-shell" value="0" checked>shell&nbsp;&nbsp;&nbsp;</label>
+                        <label for="script-python" class="radio-label"><input type="radio" name="scriptType" id="script-python" value="1">python&nbsp;&nbsp;&nbsp;</label>
+                        <label for="script-bat" class="radio-label"><input type="radio" name="scriptType" id="script-bat" value="2">bat&nbsp;&nbsp;&nbsp;</label>
+                        <label for="script-php" class="radio-label"><input type="radio" name="scriptType" id="script-php" value="3">php&nbsp;&nbsp;&nbsp;</label>
+                        <label for="script-powerShell" class="radio-label"><input type="radio" name="scriptType" id="script-powerShell" value="4">powerShell&nbsp;&nbsp;&nbsp;</label>
+                        <br><span class="tips"><b>*&nbsp;</b>该命令的类型</span>
+                    </div>
+                </div><br>--%>
+
+                <div class="form-group">
+                    <label for="runAs" class="col-lab control-label"><i class="glyphicons glyphicons-user"></i>&nbsp;&nbsp;运行身份：</label>
+                    <div class="col-md-10">
+                        <input type="text" class="form-control input-sm" id="runAs" name="runAs" value="root">
+                        <span class="tips"><b>*&nbsp;</b>该任务以哪个身份执行(默认是root)</span>
+                    </div>
+                </div><br>
+
+                <div class="form-group">
+                    <label for="successExit" class="col-lab control-label"><i class="glyphicons glyphicons-tags"></i>&nbsp;&nbsp;成功标识：</label>
+                    <div class="col-md-10">
+                        <input type="text" class="form-control input-sm" id="successExit" name="successExit" value="0">
+                        <span class="tips"><b>*&nbsp;</b>自定义作业执行成功的返回标识(默认执行成功是0)</span>
+                    </div>
+                </div><br>
+
+                <div class="form-group">
+                    <label class="col-lab control-label"><i class="glyphicon  glyphicon glyphicon-forward"></i>&nbsp;&nbsp;失败重跑：</label>
+                    <div class="col-md-10">
+                        <label onclick="showCountDiv()" for="redo01" class="radio-label"><input type="radio" name="redo" value="1" id="redo01">是&nbsp;&nbsp;&nbsp;</label>
+                        <label onclick="hideCountDiv()" for="redo00" class="radio-label"><input type="radio" name="redo" value="0" id="redo00" checked>否</label>&nbsp;&nbsp;&nbsp;
                         <br><span class="tips"><b>*&nbsp;</b>执行失败时是否自动重新执行</span>
                     </div>
                 </div><br>
@@ -704,7 +765,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4 id="subTitle" action="add" tid="" >添加子作业</h4>
                 </div>
                 <div class="modal-body">
@@ -731,10 +792,25 @@
                         <div class="form-group">
                             <label for="command1" class="col-lab control-label" title="请采用unix/linux的shell支持的命令">执行命令：</label>
                             <div class="col-md-9">
-                                <input type="text" class="form-control " id="command1"/>&nbsp;
+                                <textarea class="form-control" id="command1" name="command1" style="height:100px;resize:vertical"></textarea>&nbsp;
                             </div>
                         </div>
 
+                        <div class="form-group">
+                            <label for="runAs1" class="col-lab control-label">运行身份：</label>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="runAs1" name="runAs1" value="root">
+                                <span class="tips"><b>*&nbsp;</b>该任务以哪个身份执行(默认是root)</span>
+                            </div>
+                        </div><br>
+
+                        <div class="form-group">
+                            <label for="successExit1" class="col-lab control-label">成功标识：</label>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="successExit1" name="successExit1" value="0">
+                                <span class="tips"><b>*&nbsp;</b>自定义作业执行成功的返回标识(默认执行成功是0)</span>
+                            </div>
+                        </div><br>
 
                         <div class="form-group">
                             <label for="timeout1" class="col-lab control-label">超时时间：</label>
@@ -743,7 +819,6 @@
                                 <span class="tips"><b>*&nbsp;</b>执行作业允许的最大时间,超过则为超时(0:忽略超时时间,分钟为单位)</span>
                             </div>
                         </div><br>
-
 
                         <div class="form-group">
                             <label class="col-lab control-label" title="执行失败时是否自动重新执行">重新执行：</label>&nbsp;&nbsp;
@@ -776,6 +851,7 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

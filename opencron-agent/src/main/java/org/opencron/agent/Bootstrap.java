@@ -23,9 +23,6 @@ package org.opencron.agent;
  * Created by benjobs on 16/3/3.
  */
 
-import org.opencron.common.job.Opencron;
-import org.opencron.common.utils.IOUtils;
-import org.opencron.common.utils.LoggerFactory;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -36,6 +33,9 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.opencron.common.job.Opencron;
+import org.opencron.common.utils.IOUtils;
+import org.opencron.common.utils.LoggerFactory;
 import org.slf4j.Logger;
 
 import java.io.*;
@@ -145,17 +145,30 @@ public class Bootstrap implements Serializable {
      */
     private void init() throws Exception {
         port = Integer.valueOf(Integer.parseInt(Globals.OPENCRON_PORT));
-        String inputPwd = Globals.OPENCRON_PASSWORD;
-        if (notEmpty(inputPwd)) {
-            this.password = DigestUtils.md5Hex(inputPwd).toLowerCase();
-            Globals.OPENCRON_PASSWORD_FILE.deleteOnExit();
+        String inputPassword = Globals.OPENCRON_PASSWORD;
+        if (notEmpty(inputPassword)) {
+            Globals.OPENCRON_PASSWORD_FILE.delete();
+            this.password = DigestUtils.md5Hex(inputPassword).toLowerCase();
             IOUtils.writeText(Globals.OPENCRON_PASSWORD_FILE, this.password, CHARSET);
         } else {
-            if (!Globals.OPENCRON_PASSWORD_FILE.exists()) {
-                this.password = DigestUtils.md5Hex(this.password).toLowerCase();
-                IOUtils.writeText(Globals.OPENCRON_PASSWORD_FILE, this.password, CHARSET);
+            boolean writeDefault = false;
+            //.password file already exists
+            if (Globals.OPENCRON_PASSWORD_FILE.exists()) {
+                //read password from .password file
+                String filePassowrd = IOUtils.readText(Globals.OPENCRON_PASSWORD_FILE, CHARSET).trim().toLowerCase();
+                if (notEmpty(filePassowrd)) {
+                    this.password = filePassowrd;
+                }else {
+                    writeDefault = true;
+                }
             } else {
-                password = IOUtils.readText(Globals.OPENCRON_PASSWORD_FILE, CHARSET).trim().toLowerCase();
+                writeDefault = true;
+            }
+
+            if (writeDefault) {
+                this.password = DigestUtils.md5Hex(Globals.OPENCRON_DEFPASSWORD).toLowerCase();
+                Globals.OPENCRON_PASSWORD_FILE.delete();
+                IOUtils.writeText(Globals.OPENCRON_PASSWORD_FILE, this.password, CHARSET);
             }
         }
     }
@@ -194,6 +207,9 @@ public class Bootstrap implements Serializable {
                     server.serve();
                 }
             }).start();
+
+            agentProcessor.register();
+
             logger.info("[opencron]agent started @ port:{},pid:{}", port, getPid());
         } catch (Exception e) {
             e.printStackTrace();
@@ -347,7 +363,7 @@ public class Bootstrap implements Serializable {
             /**
              * delete pid file...
              */
-            Globals.OPENCRON_PID_FILE.deleteOnExit();
+            Globals.OPENCRON_PID_FILE.delete();
             System.exit(0);
         }
     }

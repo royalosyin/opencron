@@ -6,10 +6,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
 
-    <link href='${contextPath}/css/jquery.mCustomScrollbar.css?resId=${resourceId}' rel='stylesheet'>
-    <script src="${contextPath}/js/jquery.mCustomScrollbar.min.js?resId=${resourceId}"></script>
+    <link href='${contextPath}/static/css/jquery.mCustomScrollbar.css?resId=${resourceId}' rel='stylesheet'>
+    <script src="${contextPath}/static/js/jquery.mCustomScrollbar.min.js?resId=${resourceId}"></script>
 
     <script type="text/javascript">
         var flag = false;
@@ -41,9 +40,9 @@
                         $.ajax({
                             headers:{"csrf":"${csrf}"},
                             type:"POST",
-                            url:"${contextPath}/job/batchexec",
+                            url:"${contextPath}/job/batchexec.do",
                             data:{
-                                "command":$.base64.encode(cmd),
+                                "command":toBase64(cmd),
                                 "agentIds":ids
                             }
                         });
@@ -96,14 +95,15 @@
         });
 
     </script>
+
 </head>
 
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+<body>
 
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -167,8 +167,9 @@
         </div>
     </div>
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>
 
 

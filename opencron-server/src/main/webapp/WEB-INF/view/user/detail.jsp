@@ -6,15 +6,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-
     <script type="text/javascript">
 
         function editPwd(id){
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/user/pwdpage",
+                url:"${contextPath}/user/get.do",
                 data:{"id":id},
                 success : function(obj) {
                     $("#pwdform")[0].reset();
@@ -70,7 +68,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/user/editpwd",
+                url:"${contextPath}/user/pwd.do",
                 data:{
                     "id":id,
                     "pwd0":calcMD5(pwd0),
@@ -78,7 +76,7 @@
                     "pwd2":calcMD5(pwd2)
                 },
                 success:function(data){
-                    if (data == "success"){
+                    if (data == "true"){
                         $('#pwdModal').modal('hide');
                         alertMsg("修改成功");
                         return false;
@@ -103,7 +101,7 @@
         $(document).ready(function(){
             $("#size").change(function(){
                 var pageSize = $("#size").val();
-                window.location.href = "${contextPath}/user/view?pageSize="+pageSize+"&csrf=${csrf}";
+                window.location.href = "${contextPath}/user/view.htm?pageSize="+pageSize+"&csrf=${csrf}";
             });
 
             $("#pwd1").change(function(){
@@ -138,13 +136,13 @@
 
     </script>
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
 
+<body>
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -167,7 +165,7 @@
                 <td class="item"><i class="glyphicon glyphicon-user"></i>&nbsp;用&nbsp;&nbsp;户&nbsp;&nbsp;名：</td>
                 <td>${u.userName}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                     <a href="#" onclick="editPwd('${u.userId}')" title="修改密码"><i class="glyphicon glyphicon-lock"></i></a>&nbsp;&nbsp;
-                    <a href="${contextPath}/user/editpage?id=${u.userId}&csrf=${csrf}" title="编辑资料"><i class="glyphicon glyphicon-pencil"></i></a></td>
+                    <a href="${contextPath}/user/edit/${u.userId}.htm?csrf=${csrf}" title="编辑资料"><i class="glyphicon glyphicon-pencil"></i></a></td>
             </tr>
 
             <tr>
@@ -201,7 +199,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4>修改密码</h4>
                 </div>
                 <div class="modal-body">
@@ -238,6 +236,8 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>
+

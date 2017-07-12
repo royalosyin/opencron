@@ -6,7 +6,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
+    <script type="text/javascript" src="${contextPath}/static/js/clipboard.js?resId=${resourceId}"></script> <!-- jQuery Library -->
 
     <script type="text/javascript">
         function showContact() {
@@ -38,7 +38,15 @@
         $(document).ready(function () {
             $("#size").change(function () {
                 var pageSize = $("#size").val();
-                window.location.href = "${contextPath}/agent/view?pageSize=" + pageSize+"&csrf=${csrf}";
+                window.location.href = "${contextPath}/agent/view.htm?pageSize=" + pageSize+"&csrf=${csrf}";
+            });
+
+            new Clipboard('#copy-btn').on('success', function(e) {
+                e.clearSelection();
+                $("#copy-btn").text("已复制");
+                setTimeout(function () {
+                    $("#copy-btn").text("复制");
+                },2000);
             });
 
             setInterval(function () {
@@ -50,9 +58,8 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type: "POST",
-                    url: "${contextPath}/agent/view",
+                    url: "${contextPath}/agent/refresh.htm",
                     data: {
-                        "refresh": 1,
                         "pageNo":${pageBean.pageNo},
                         "pageSize":${pageBean.pageSize},
                         "order":"${pageBean.order}",
@@ -90,13 +97,13 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type: "POST",
-                    url: "${contextPath}/agent/checkname",
+                    url: "${contextPath}/agent/checkname.do",
                     data: {
                         "id": $("#id").val(),
                         "name": $("#name").val()
                     },
                     success: function (data) {
-                        if (data == "yes") {
+                        if (data) {
                             $("#checkName").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;执行器名可用' + "</font>");
                             return false;
                         } else {
@@ -113,7 +120,7 @@
 
             $("#pwd0").blur(function () {
                 if (!$("#pwd0").val()) {
-                    $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;请输入原密码' + "</font>");
+                    $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;请输入'+(window.errorAgentPwd>=3?"密文":"原密码")+"</font>");
                 }
             });
 
@@ -134,7 +141,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/agent/editpage",
+                url: "${contextPath}/agent/get.do",
                 data: {"id": id},
                 success: function (obj) {
                     $("#agentform")[0].reset();
@@ -180,7 +187,7 @@
                         $("#email").val(obj.emailAddress);
                         $("#comment").val(obj.comment);
                         $("#agentModal").modal("show");
-                        return;
+
                     }
                 },
                 error: function () {
@@ -261,18 +268,18 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/agent/checkname",
+                url: "${contextPath}/agent/checkname.do",
                 data: {
                     "id": id,
                     "name": name
                 },
                 success: function (data) {
-                    if (data == "yes") {
+                    if (data) {
                         if (status == 1) {
                             $.ajax({
                                 headers:{"csrf":"${csrf}"},
                                 type: "POST",
-                                url: "${contextPath}/verify/ping",
+                                url: "${contextPath}/verify/ping.do",
                                 data: {
                                     headers:{"csrf":"${csrf}"},
                                     "proxy": proxy,
@@ -281,8 +288,9 @@
                                     "port": port,
                                     "password": password
                                 },
+                                dataType:"JSON",
                                 success: function (data) {
-                                    if (data == "success") {
+                                    if (data) {
                                         canSave(proxy, id, name, port, warning, mobiles, email);
                                         return false;
                                     } else {
@@ -298,7 +306,7 @@
                             return false;
                         }
                     } else {
-                        alert("用户已存在!");
+                        alert("执行器名称已存在!");
                         return false;
                     }
                 },
@@ -313,7 +321,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/agent/edit",
+                url: "${contextPath}/agent/edit.do",
                 data: {
                     "proxy": proxy,
                     "proxyAgent": $("#proxyAgent").val(),
@@ -325,27 +333,24 @@
                     "emailAddress": email,
                     "comment":$("#comment").val()
                 },
-                success: function (data) {
-                    if (data == "success") {
-                        $('#agentModal').modal('hide');
-                        alertMsg("修改成功");
-                        $("#name_" + id).html(escapeHtml(name));
-                        $("#port_" + id).html(port);
-                        if (warning == "0") {
-                            $("#warning_" + id).html('<span class="label label-default" style="color: red;font-weight:bold">&nbsp;&nbsp;否&nbsp;&nbsp;</span>');
-                        } else {
-                            $("#warning_" + id).html('<span class="label label-warning" style="color: white;font-weight:bold">&nbsp;&nbsp;是&nbsp;&nbsp;</span>');
-                        }
-                        if (proxy == "0") {
-                            $("#connType_" + id).html("直连");
-                        } else {
-                            $("#connType_" + id).html("代理");
-                        }
-                        flushConnAgents();
-                        return false;
+                success: function () {
+                    $('#agentModal').modal('hide');
+                    alertMsg("修改成功");
+                    $("#name_" + id).html(escapeHtml(name));
+                    $("#port_" + id).html(port);
+                    if (warning == "0") {
+                        $("#warning_" + id).html('<span class="label label-default" style="color: red;font-weight:bold">&nbsp;&nbsp;否&nbsp;&nbsp;</span>');
                     } else {
-                        alert("修改失败");
+                        $("#warning_" + id).html('<span class="label label-warning" style="color: white;font-weight:bold">&nbsp;&nbsp;是&nbsp;&nbsp;</span>');
                     }
+                    if (proxy == "0") {
+                        $("#connType_" + id).html("直连");
+                    } else {
+                        $("#connType_" + id).html("代理");
+                    }
+                    flushConnAgents();
+                    return false;
+
                 },
                 error: function () {
                     alert("网络繁忙请刷新页面重试!");
@@ -358,7 +363,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/agent/getConnAgents",
+                url: "${contextPath}/agent/getConnAgents.do",
                 success: function (obj) {
                     if (obj != null) {
                         $("#proxyAgent").empty();
@@ -371,10 +376,11 @@
         }
 
         function editPwd(id) {
+            inputPwd();
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/agent/pwdpage",
+                url: "${contextPath}/agent/get.do",
                 data: {"id": id},
                 success: function (obj) {
                     $("#pwdform")[0].reset();
@@ -382,13 +388,53 @@
                         $("#oldpwd").html("");
                         $("#checkpwd").html("");
                         $("#agentId").val(obj.agentId);
+                        window.errorAgentPwd = 0;
                         $("#pwdModal").modal("show");
-                        return;
+
                     }
                 },
                 error: function () {
                     alert("网络繁忙请刷新页面重试!");
                 }
+            });
+        }
+
+        function remove(id) {
+            swal({
+                title: "",
+                text: "确定要删除这个执行器吗？",
+                type: "warning",
+                showCancelButton: true,
+                closeOnConfirm: false,
+                confirmButtonText: "删除"
+            }, function() {
+                $.ajax({
+                    headers:{"csrf":"${csrf}"},
+                    type:"POST",
+                    url:"${contextPath}/agent/checkdel.do",
+                    data:{"id":id},
+                    success:function (data) {
+                        if(data == "error"){
+                            alert("该执行器不存在,删除失败!")
+                        }else if (data == "false"){
+                            alert("该执行器上定义了作业,请先删除作业再尝试删除")
+                        }else {
+                            $.ajax({
+                                headers:{"csrf":"${csrf}"},
+                                type:"POST",
+                                url:"${contextPath}/agent/delete.do",
+                                data:{"id":id},
+                                success:function () {
+                                    alertMsg("删除执行器成功");
+                                    location.reload();
+                                },
+                                error:function () {
+                                    alert("删除执行器失败!")
+                                }
+                            });
+                        }
+                    }
+                });
             });
         }
 
@@ -400,7 +446,7 @@
             }
             var pwd0 = $("#pwd0").val();
             if (!pwd0) {
-                alert("请填原密码!");
+                $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;请输入'+(window.errorAgentPwd>=3?"密文":"原密码")+"</font>");
                 return false;
             }
             var pwd1 = $("#pwd1").val();
@@ -420,29 +466,49 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/agent/editpwd",
+                url: "${contextPath}/agent/pwd.do",
                 data: {
                     "id": id,
+                    "type":window.errorAgentPwd>=3,
                     "pwd0": pwd0,
                     "pwd1": pwd1,
                     "pwd2": pwd2
                 },
                 success: function (data) {
-                    if (data == "success") {
+                    if ( data == "true" ) {
                         $('#pwdModal').modal('hide');
+                        $('#password').val(pwd0);
                         alertMsg("修改成功");
                         return false;
                     }
-                    if (data == "failure") {
-                        alert("Client密码存在异常!");
+                    if (data == "false") {//原密码正确,但是连接失败...
+                        ++window.errorAgentPwd;
+                        if (window.errorAgentPwd>=3){
+                            inputSrcPwd(id);
+                        }else {
+                            alert("执行器原密码无效连接失败!");
+                        }
                         return false;
                     }
-                    if (data == "one") {
-                        $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;密码不正确' + "</font>");
+                    if (data == "one") {//原密码错误
+                        if( window.agentStarted!=undefined && window.agentStarted == false){
+                            $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;错误! 请确保执行器端服务已经启动' + "</font>");
+                        }else {
+                            if (window.errorAgentPwd!=undefined && window.errorAgentPwd>=3) {
+                                $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;执行器密文不正确链接失败,请检查重新输入' + "</font>");
+                            }else{
+                                ++window.errorAgentPwd;
+                                if (window.errorAgentPwd>=3) {
+                                    inputSrcPwd(id);
+                                }else {
+                                    $("#oldpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;原密码不正确' + "</font>");
+                                }
+                            }
+                        }
                         return false;
                     }
                     if (data == "two") {
-                        $("#checkpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;密码不一致' + "</font>");
+                        $("#checkpwd").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;两次密码不一致' + "</font>");
                         return false;
                     }
 
@@ -485,12 +551,12 @@
                 return false;
             }
 
-            $("#pingResult").html("<img src='${contextPath}/img/icon-loader.gif'> <font color='#2fa4e7'>检测中...</font>");
+            $("#pingResult").html("<img src='${contextPath}/static/img/icon-loader.gif'> <font color='#2fa4e7'>检测中...</font>");
 
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/verify/ping",
+                url: "${contextPath}/verify/ping.do",
                 data: {
                     "proxy": proxy,
                     "proxyId": $("#proxyAgent").val(),
@@ -498,13 +564,12 @@
                     "port": port,
                     "password": password
                 },
+                dataType:"JSON",
                 success: function (data) {
-                    if (data == "success") {
+                    if (data) {
                         $("#pingResult").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;通信正常' + "</font>");
-                        return;
                     } else {
                         $("#pingResult").html("<font color='red'>" + '<i class="glyphicon glyphicon-remove-sign"></i>&nbsp;通信失败' + "</font>");
-                        return;
                     }
                 },
                 error: function () {
@@ -514,7 +579,37 @@
         }
 
         function sortPage(field) {
-            location.href="${contextPath}/agent/view?pageNo=${pageBean.pageNo}&pageSize=${pageBean.pageSize}&orderBy="+field+"&order="+("${pageBean.order}"=="asc"?"desc":"asc")+"&csrf=${csrf}";
+            location.href="${contextPath}/agent/view.htm?pageNo=${pageBean.pageNo}&pageSize=${pageBean.pageSize}&orderBy="+field+"&order="+("${pageBean.order}"=="asc"?"desc":"asc")+"&csrf=${csrf}";
+        }
+
+        function inputPwd() {
+            window.errorAgentPwd=0;
+            $("#pwdlable").html('<i class="glyphicon glyphicon-lock"></i>&nbsp;&nbsp;原&nbsp;&nbsp;密&nbsp;&nbsp;码：');
+            $("#pwd0").attr("placeholder","请输入原密码").val('');
+            $("#oldpwd").html('');
+            $("#pwdReset").hide();
+        }
+
+        function inputSrcPwd(id) {
+            $.ajax({
+                headers:{"csrf":"${csrf}"},
+                type: "POST",
+                url: "${contextPath}/agent/path.do",
+                data: { "agentId": id },
+                dataType:"html",
+                success:function(result) {
+                    if(result) {
+                        $("#pwdPath").val("more " + result);
+                        $("#oldpwd").html('');
+                        $("#pwdlable").html('<i class="glyphicon glyphicon-lock"></i>&nbsp;&nbsp;密&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;文：');
+                        $("#pwd0").attr("placeholder","请输入密文").val('');
+                        $("#pwdReset").show().val('');
+                    }else {
+                        window.agentStarted = false;
+                        alert("错误! 请确保执行器端服务已经启动");
+                    }
+                }
+            });
         }
 
     </script>
@@ -526,13 +621,13 @@
     </style>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
 
+<body>
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -543,12 +638,12 @@
     </ol>
     <h4 class="page-title"><i class="fa fa-desktop" aria-hidden="true"></i>&nbsp;执行器管理&nbsp;&nbsp;<span id="highlight"
                                                                                                         style="font-size: 14px"><img
-            src='${contextPath}/img/icon-loader.gif' style="width: 14px;height: 14px">&nbsp;通信监测持续进行中...</span></h4>
+            src='${contextPath}/static/img/icon-loader.gif' style="width: 14px;height: 14px">&nbsp;通信监测持续进行中...</span></h4>
     <div class="block-area" id="defaultStyle">
         <div>
-            <div style="float: left">
-                <label>
-                    每页 <select size="1" class="select-self" id="size" style="width: 50px;margin-bottom: 8px">
+            <div style="float:left;">
+                <label >
+                    每页 <select size="1" class="select-opencron" id="size" style="width: 50px;">
                     <option value="15">15</option>
                     <option value="30" ${pageBean.pageSize eq 30 ? 'selected' : ''}>30</option>
                     <option value="50" ${pageBean.pageSize eq 50 ? 'selected' : ''}>50</option>
@@ -558,7 +653,7 @@
             </div>
             <c:if test="${permission eq true}">
                 <div style="float: right;margin-top: -10px">
-                    <a href="${contextPath}/agent/addpage?csrf=${csrf}" class="btn btn-sm m-t-10"
+                    <a href="${contextPath}/agent/add.htm?csrf=${csrf}" class="btn btn-sm m-t-10"
                        style="margin-left: 50px;margin-bottom: 8px"><i class="icon">&#61943;</i>添加</a>
                 </div>
             </c:if>
@@ -645,7 +740,7 @@
                         <center>
                             <div class="visible-md visible-lg hidden-sm hidden-xs action-buttons">
 
-                                <a href="${contextPath}/job/addpage?id=${w.agentId}&csrf=${csrf}" title="新任务">
+                                <a href="${contextPath}/job/add.htm?id=${w.agentId}&csrf=${csrf}" title="新任务">
                                     <i aria-hidden="true" class="fa fa-plus-square-o"></i>
                                 </a>&nbsp;&nbsp;
                                 <c:if test="${permission eq true}">
@@ -655,8 +750,11 @@
                                     <a href="#" onclick="editPwd('${w.agentId}')" title="修改密码">
                                         <i aria-hidden="true" class="fa fa-lock"></i>
                                     </a>&nbsp;&nbsp;
+                                    <a href="#" onclick="remove('${w.agentId}')" title="删除">
+                                        <i aria-hidden="true" class="fa fa-times"></i>
+                                    </a>&nbsp;&nbsp;
                                 </c:if>
-                                <a href="${contextPath}/agent/detail?id=${w.agentId}&csrf=${csrf}" title="查看详情">
+                                <a href="${contextPath}/agent/detail/${w.agentId}.htm?csrf=${csrf}" title="查看详情">
                                     <i aria-hidden="true" class="fa fa-eye"></i>
                                 </a>
                             </div>
@@ -668,7 +766,7 @@
             </tbody>
         </table>
 
-        <cron:pager href="${contextPath}/agent/view?csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}"
+        <cron:pager href="${contextPath}/agent/view.htm?csrf=${csrf}" id="${pageBean.pageNo}" size="${pageBean.pageSize}"
                    total="${pageBean.totalCount}"/>
 
     </div>
@@ -678,7 +776,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4>修改执行器</h4>
                 </div>
                 <div class="modal-body">
@@ -787,14 +885,23 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4>修改密码</h4>
                 </div>
                 <div class="modal-body">
                     <form class="form-horizontal" role="form" id="pwdform">
                         <input type="hidden" id="agentId">
+                        <label id="pwdReset" style="display: none;text-align: left;color:red;margin-left: 95px;padding-bottom: 10px;" for="pwd0" class="col-lab control-label">
+                            <div style="margin-bottom: 10px;">
+                                您已经连续三次输入无效的密码,请进入执行器下,执行下面的命令,复制密码原文到秘文输入框,或者重新输入<a href="#"  onclick="inputPwd();" style="color: dodgerblue">原密码</a>
+                            </div>
+                            <div style="margin-bottom: 5px;">
+                                <input class="btn btn-default" id="pwdPath" type="text" style="width: 80%;text-align: left" readonly></input>
+                               <button class="btn btn-default" type="button" id="copy-btn" data-clipboard-action="copy" data-clipboard-target="#pwdPath" aria-label="已复制" style="width: 15%">复制</button>
+                           </div>
+                        </label>
                         <div class="form-group" style="margin-bottom: 4px;">
-                            <label for="pwd0" class="col-lab control-label"><i class="glyphicon glyphicon-lock"></i>&nbsp;&nbsp;原&nbsp;&nbsp;密&nbsp;&nbsp;码：</label>
+                            <label for="pwd0" id="pwdlable" class="col-lab control-label"><i class="glyphicon glyphicon-lock"></i>&nbsp;&nbsp;原&nbsp;&nbsp;密&nbsp;&nbsp;码：</label>
                             <div class="col-md-9">
                                 <input type="password" class="form-control " id="pwd0" placeholder="请输入原密码">&nbsp;&nbsp;<label
                                     id="oldpwd"></label>
@@ -819,7 +926,7 @@
                     <center>
                         <button type="button" class="btn btn-sm" onclick="savePwd()">保存</button>
                         &nbsp;&nbsp;
-                        <button type="button" class="btn btn-sm" data-dismiss="modal">关闭</button>
+                        <button type="button" class="btn btn-sm"  onclick="inputPwd()" data-dismiss="modal">关闭</button>
                     </center>
                 </div>
             </div>
@@ -827,6 +934,7 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

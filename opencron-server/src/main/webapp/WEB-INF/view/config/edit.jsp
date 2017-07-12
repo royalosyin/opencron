@@ -7,7 +7,6 @@
 <html lang="en">
 <meta name="author" content="author:benjobs,wechat:wolfboys,Created by 2016" />
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
 
     <script type="text/javascript">
 
@@ -57,19 +56,23 @@
                 alert("时间间隔必须为数字!");
                 return false;
             }
+
+            $("#sendUrl").val(toBase64(sendUrl));
+            $("#template").val(toBase64($("#template").val()));
+
             $("#config").submit();
         }
 
     </script>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
 
+<body>
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -87,7 +90,7 @@
     <div class="block-area" id="basic">
 
         <div class="tile p-15">
-            <form class="form-horizontal" role="form"  id="config" action="${contextPath}/config/edit" method="post"><br>
+            <form class="form-horizontal" role="form"  id="config" action="${contextPath}/config/edit.do" method="post"><br>
                 <input type="hidden" name="csrf" value="${csrf}">
                 <div class="form-group">
                     <label for="senderEmail" class="col-lab control-label"><i class="glyphicon glyphicon-envelope"></i>&nbsp;&nbsp;发件邮箱：</label>
@@ -126,7 +129,7 @@
                 <div class="form-group">
                     <label for="sendUrl" class="col-lab control-label"><i class="glyphicon glyphicon-font"></i>&nbsp;&nbsp;发信URL：</label>
                     <div class="col-md-10">
-                        <textarea class="form-control input-sm" id="sendUrl" name="sendUrl">${config.sendUrl}</textarea>
+                        <textarea class="form-control input-sm" id="sendUrl" name="sendUrl"> ${config.sendUrl}</textarea>
                         <span class="tips"><b>*&nbsp;</b>短信发送服务所需的URL</span>
                     </div>
                 </div><br>
@@ -158,6 +161,7 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

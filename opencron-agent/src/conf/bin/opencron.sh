@@ -20,9 +20,6 @@
 #
 # Environment Variable Prerequisites
 #
-#   Do not set the variables in this script. Instead put them into a script
-#   setenv.sh in OPENCRON_BASE/bin to keep your customizations separate.
-#
 #   OPENCRON_HOME   May point at your opencron "build" directory.
 #
 #   OPENCRON_BASE   (Optional) Base directory for resolving dynamic portions
@@ -94,7 +91,7 @@ PRGDIR=`dirname "$PRG"`
 [ -z "$OPENCRON_BASE" ] && OPENCRON_BASE="$OPENCRON_HOME"
 
 # Ensure that any user defined CLASSPATH variables are not used on startup,
-# but allow them to be specified in setenv.sh, in rare case when it is needed.
+ # but allow them to be specified in setenv.sh, in rare case when it is needed.
 CLASSPATH=
 
 if [ -r "$OPENCRON_BASE/bin/setenv.sh" ]; then
@@ -109,6 +106,7 @@ if $cygwin; then
   [ -n "$JRE_HOME" ] && JRE_HOME=`cygpath --unix "$JRE_HOME"`
   [ -n "$OPENCRON_HOME" ] && OPENCRON_HOME=`cygpath --unix "$OPENCRON_HOME"`
   [ -n "$OPENCRON_BASE" ] && OPENCRON_BASE=`cygpath --unix "$OPENCRON_BASE"`
+  [ -n "$CLASSPATH" ] && CLASSPATH=`cygpath --path --unix "$CLASSPATH"`
   [ -n "$CLASSPATH" ] && CLASSPATH=`cygpath --path --unix "$CLASSPATH"`
 fi
 
@@ -165,13 +163,6 @@ if [ -z "$OPENCRON_TMPDIR" ] ; then
   OPENCRON_TMPDIR="$OPENCRON_BASE"/temp
 fi
 
-shutdownPort
-
-# Add on extra jar files to CLASSPATH
-if [ ! -z "$CLASSPATH" ] ; then
-  CLASSPATH="$CLASSPATH":
-fi
-
 OPENCRON_PIDDIR="/var/run";
  if [ ! -x "$OPENCRON_PIDDIR" ] ; then
    mkdir $OPENCRON_PIDDIR;
@@ -179,18 +170,16 @@ OPENCRON_PIDDIR="/var/run";
 OPENCRON_PID="$OPENCRON_PIDDIR/opencron.pid";
 
 #shutdownPort for shutdown socket...
-OPENCRON_SHUTDOWNPORT=15707
+OPENCRON_SHUTDOWNPORT=17502
 
 #opencron version
-OPENCRON_VERSION="1.0-RELEASE"
+OPENCRON_VERSION="1.1.0-RELEASE"
 
 # Add bootstrap.jar to classpath
-# bootstrap can be over-ridden per instance
-if [ -r "$OPENCRON_BASE/lib/opencron-agent-${OPENCRON_VERSION}.jar" ] ; then
-  CLASSPATH=$CLASSPATH$OPENCRON_BASE/lib/opencron-agent-${OPENCRON_VERSION}.jar
-else
-   CLASSPATH=$CLASSPATH$OPENCRON_BASE/lib/opencron-agent-${OPENCRON_VERSION}.jar
+if [ ! -z "$CLASSPATH" ] ; then
+  CLASSPATH="$CLASSPATH":
 fi
+CLASSPATH="$CLASSPATH""$OPENCRON_BASE"/lib/opencron-agent-${OPENCRON_VERSION}.jar
 
 # Bugzilla 37848: When no TTY is available, don't output to console
 have_tty=0
@@ -229,7 +218,7 @@ fi
 
 case "$1" in
     start)
-        GETOPT_ARGS=`getopt -o P:p: -al port:,password: -- "$@"`
+        GETOPT_ARGS=`getopt -o P:p:s:k: -al port:,password: -- "$@"`
         eval set -- "$GETOPT_ARGS"
         while [ -n "$1" ]
         do
@@ -241,8 +230,11 @@ case "$1" in
                     OPENCRON_PASSWORD=$2;
                     shift 2;;
                 -s|--server)
-                    OPENCRON_SERVER=$3;
-                    shift 2;;
+                     OPENCRON_SERVER=$2;
+                     shift 2;;
+                -k|--key)
+                     OPENCRON_REGKEY=$2;
+                     shift 2;;
                 --) break ;;
                 *)
                     echo "usage {-P\${port}|-p\${pasword}}"
@@ -258,8 +250,17 @@ case "$1" in
         fi
 
         if [ -z "$OPENCRON_PASSWORD" ];then
-            OPENCRON_PASSWORD=opencron;
-            echo "opencron password not input,will be used password:opencron"
+            #.password file not exists
+            if [ ! -f "$OPENCRON_BASE/.password" ];then
+                  OPENCRON_PASSWORD="opencron";
+                  echo "opencron password not input,will be used password:opencron"
+            else
+                #.password file already exists but empty
+               if [ x`cat "$OPENCRON_BASE/.password"` = x"" ];then
+                  OPENCRON_PASSWORD="opencron";
+                  echo "opencron password not input,will be used password:opencron"
+               fi
+            fi
         fi
 
         if [ ! -z "$OPENCRON_PID" ]; then
@@ -309,8 +310,9 @@ case "$1" in
         -Dopencron.pid="$OPENCRON_PID" \
         -Djava.io.tmpdir="$OPENCRON_TMPDIR" \
         -Dopencron.port="$OPENCRON_PORT" \
-        -Dopencron.password="$OPENCRON_PASSWORD" \
         -Dopencron.server="$OPENCRON_SERVER" \
+        -Dopencron.regkey="$OPENCRON_REGKEY" \
+        -Dopencron.password="$OPENCRON_PASSWORD" \
         -Dopencron.shutdown="$OPENCRON_SHUTDOWNPORT" \
         org.opencron.agent.Bootstrap start \
         >> "$OPENCRON_OUT" 2>&1 "&";

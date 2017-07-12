@@ -23,14 +23,15 @@
 package org.opencron.agent;
 
 import com.alibaba.fastjson.JSON;
-import org.opencron.common.job.*;
-import org.opencron.common.utils.*;
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.exec.*;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.opencron.common.job.*;
+import org.opencron.common.utils.*;
 import org.slf4j.Logger;
 
 import java.beans.Introspector;
@@ -57,11 +58,11 @@ public class AgentProcessor implements Opencron.Iface {
 
     private Integer socketPort;
 
-    private final String EXITCODE_KEY = "exitCode";
-
-    private final String EXITCODE_SCRIPT = String.format(" \n echo %s:$?", EXITCODE_KEY);
-
     private final String REPLACE_REX = "%s:\\sline\\s[0-9]+:";
+
+    private String EXITCODE_KEY = "exitCode";
+
+    private String EXITCODE_SCRIPT = String.format("\n\necho %s:$?", EXITCODE_KEY);
 
     private AgentMonitor agentMonitor;
 
@@ -99,6 +100,16 @@ public class AgentProcessor implements Opencron.Iface {
     }
 
     @Override
+    public Response path(Request request) throws TException {
+        //返回密码文件的路径...
+        return Response.response(request).setSuccess(true)
+                .setExitCode(Opencron.StatusCode.SUCCESS_EXIT.getValue())
+                .setMessage(Globals.OPENCRON_HOME)
+                .end();
+    }
+
+
+    @Override
     public Response monitor(Request request) throws TException {
         Opencron.ConnType connType = Opencron.ConnType.getByName(request.getParams().get("connType"));
         Response response = Response.response(request);
@@ -134,65 +145,13 @@ public class AgentProcessor implements Opencron.Iface {
     }
 
     @Override
-    public Response proxy(Request request) throws TException {
-        String proxyHost = request.getParams().get("proxyHost");
-        String proxyPort = request.getParams().get("proxyPort");
-        String proxyAction = request.getParams().get("proxyAction");
-        String proxyPassword = request.getParams().get("proxyPassword");
-
-        //其他参数....
-        String proxyParams = request.getParams().get("proxyParams");
-        Map<String, String> params = new HashMap<String, String>(0);
-        if (CommonUtils.notEmpty(proxyParams)) {
-            params = (Map<String, String>) JSON.parse(proxyParams);
-        }
-
-        Request proxyReq = Request.request(proxyHost, toInt(proxyPort), Action.findByName(proxyAction), proxyPassword).setParams(params);
-
-        logger.info("[opencron]proxy params:{}", proxyReq.toString());
-
-        TTransport transport;
-        /**
-         * ping的超时设置为5毫秒,其他默认
-         */
-        if (proxyReq.getAction().equals(Action.PING)) {
-            proxyReq.getParams().put("proxy","true");
-            transport = new TSocket(proxyReq.getHostName(), proxyReq.getPort(), 1000 * 5);
-        } else {
-            transport = new TSocket(proxyReq.getHostName(), proxyReq.getPort());
-        }
-        TProtocol protocol = new TBinaryProtocol(transport);
-        Opencron.Client client = new Opencron.Client(protocol);
-        transport.open();
-
-        Response response = null;
-        for (Method method : client.getClass().getMethods()) {
-            if (method.getName().equalsIgnoreCase(proxyReq.getAction().name())) {
-                try {
-                    response = (Response) method.invoke(client, proxyReq);
-                } catch (Exception e) {
-                    //proxy 执行失败,返回失败信息
-                    response = Response.response(request);
-                    response.setExitCode(Opencron.StatusCode.ERROR_EXIT.getValue())
-                            .setMessage("[opencron]:proxy error:"+e.getLocalizedMessage())
-                            .setSuccess(false)
-                            .end();
-                }
-                break;
-            }
-        }
-        transport.flush();
-        transport.close();
-        return response;
-    }
-
-    @Override
     public Response execute(final Request request) throws TException {
+
         if (!this.password.equalsIgnoreCase(request.getPassword())) {
             return errorPasswordResponse(request);
         }
 
-        String command = request.getParams().get("command") + EXITCODE_SCRIPT;
+        String command = request.getParams().get("command");
 
         String pid = request.getParams().get("pid");
         //以分钟为单位
@@ -202,7 +161,7 @@ public class AgentProcessor implements Opencron.Iface {
 
         logger.info("[opencron]:execute:{},pid:{}", command, pid);
 
-        File shellFile = CommandUtils.createShellFile(command, pid);
+        File shellFile = CommandUtils.createShellFile(command,pid,request.getParams().get("runAs"),EXITCODE_SCRIPT);
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
@@ -216,15 +175,24 @@ public class AgentProcessor implements Opencron.Iface {
 
         Integer exitValue;
 
+        String successExit = request.getParams().get("successExit");
+        if (CommonUtils.isEmpty(successExit)) {
+            exitValue = 0;//标准退住值:0
+        }else {
+            exitValue = Integer.parseInt(successExit);
+        }
+
         try {
-            CommandLine commandLine = CommandLine.parse("/bin/bash +x " + shellFile.getAbsolutePath());
+
+            CommandLine commandLine = CommandLine.parse(String.format("/bin/bash +x %s",shellFile.getAbsoluteFile()));
+
             final DefaultExecutor executor = new DefaultExecutor();
 
             ExecuteStreamHandler stream = new PumpStreamHandler(outputStream, outputStream);
             executor.setStreamHandler(stream);
             response.setStartTime(new Date().getTime());
             //成功执行完毕时退出值为0,shell标准的退出
-            executor.setExitValue(0);
+            executor.setExitValue(exitValue);
 
             if (timeoutFlag) {
                 //设置监控狗...
@@ -315,14 +283,21 @@ public class AgentProcessor implements Opencron.Iface {
             if (Opencron.StatusCode.TIME_OUT.getValue() == response.getExitCode()) {
                 response.setSuccess(false).end();
             } else {
-                response.setExitCode(exitValue).setSuccess(response.getExitCode() == Opencron.StatusCode.SUCCESS_EXIT.getValue()).end();
+                if (CommonUtils.isEmpty(successExit)) {
+                    response.setExitCode(exitValue).setSuccess(exitValue == Opencron.StatusCode.SUCCESS_EXIT.getValue()).end();
+                }else {
+                    response.setExitCode(exitValue).setSuccess(successExit.equals(exitValue.toString())).end();
+                }
             }
 
-            if (shellFile != null) {
-                shellFile.delete();//删除文件
-            }
         }
+
+        if (CommonUtils.notEmpty(shellFile)) {
+            shellFile.delete();
+        }
+
         logger.info("[opencron]:execute result:{}", response.toString());
+
         watchdog.stop();
 
         return response;
@@ -379,6 +354,96 @@ public class AgentProcessor implements Opencron.Iface {
         return response;
     }
 
+    @Override
+    public Response proxy(Request request) throws TException {
+        String proxyHost = request.getParams().get("proxyHost");
+        String proxyPort = request.getParams().get("proxyPort");
+        String proxyAction = request.getParams().get("proxyAction");
+        String proxyPassword = request.getParams().get("proxyPassword");
+
+        //其他参数....
+        String proxyParams = request.getParams().get("proxyParams");
+        Map<String, String> params = new HashMap<String, String>(0);
+        if (CommonUtils.notEmpty(proxyParams)) {
+            params = (Map<String, String>) JSON.parse(proxyParams);
+        }
+
+        Request proxyReq = Request.request(proxyHost, toInt(proxyPort), Action.findByName(proxyAction), proxyPassword).setParams(params);
+
+        logger.info("[opencron]proxy params:{}", proxyReq.toString());
+
+        TTransport transport;
+        /**
+         * ping的超时设置为5毫秒,其他默认
+         */
+        if (proxyReq.getAction().equals(Action.PING)) {
+            proxyReq.getParams().put("proxy","true");
+            transport = new TSocket(proxyReq.getHostName(), proxyReq.getPort(), 1000 * 5);
+        } else {
+            transport = new TSocket(proxyReq.getHostName(), proxyReq.getPort());
+        }
+        TProtocol protocol = new TBinaryProtocol(transport);
+        Opencron.Client client = new Opencron.Client(protocol);
+        transport.open();
+
+        Response response = null;
+        for (Method method : client.getClass().getMethods()) {
+            if (method.getName().equalsIgnoreCase(proxyReq.getAction().name())) {
+                try {
+                    response = (Response) method.invoke(client, proxyReq);
+                } catch (Exception e) {
+                    //proxy 执行失败,返回失败信息
+                    response = Response.response(request);
+                    response.setExitCode(Opencron.StatusCode.ERROR_EXIT.getValue())
+                            .setMessage("[opencron]:proxy error:"+e.getLocalizedMessage())
+                            .setSuccess(false)
+                            .end();
+                }
+                break;
+            }
+        }
+        transport.flush();
+        transport.close();
+        return response;
+    }
+
+    @Override
+    public Response guid(Request request) throws TException {
+        if (!this.password.equalsIgnoreCase(request.getPassword())) {
+            return errorPasswordResponse(request);
+        }
+        String macId = null;
+        try {
+            //多个网卡地址,按照字典顺序把他们连接在一块,用-分割.
+            List<String> macIds = MacUtils.getMacAddressList();
+            if (CommonUtils.notEmpty(macIds)) {
+                TreeSet<String> macSet = new TreeSet<String>(macIds);
+                macId = StringUtils.joinString(macSet,"-");
+            }
+        } catch (IOException e) {
+            logger.error("[opencron]:getMac error:{}",e);
+        }
+
+        Response response = Response.response(request).end();
+        if (notEmpty(macId)) {
+            return response.setMessage(macId).setSuccess(true).setExitCode(Opencron.StatusCode.SUCCESS_EXIT.getValue());
+        }
+        return response.setSuccess(false).setExitCode(Opencron.StatusCode.ERROR_EXIT.getValue());
+    }
+
+
+    /**
+     *重启前先检查密码,密码不正确返回Response,密码正确则直接执行重启
+     * @param request
+     * @return
+     * @throws TException
+     * @throws InterruptedException
+     */
+    @Override
+    public void restart(Request request) throws TException {
+
+    }
+
     private Response errorPasswordResponse(Request request) {
         return Response.response(request)
                 .setSuccess(false)
@@ -418,6 +483,37 @@ public class AgentProcessor implements Opencron.Iface {
             e.printStackTrace();
         }
         return resultMap;
+    }
+
+    public boolean register() {
+        if (CommonUtils.notEmpty(Globals.OPENCRON_SERVER)) {
+            String url = Globals.OPENCRON_SERVER+"/agent/autoreg.do";
+            String mac = MacUtils.getMacAddress();
+            String agentPassword = IOUtils.readText(Globals.OPENCRON_PASSWORD_FILE, "UTF-8").trim().toLowerCase();
+
+            Map<String,Object> params = new HashMap<String, Object>(0);
+            params.put("machineId",mac);
+            params.put("password",agentPassword);
+            params.put("port", Globals.OPENCRON_PORT);
+            params.put("key", Globals.OPENCRON_REGKEY);
+
+            logger.info("[opencron]agent auto register staring:{}", Globals.OPENCRON_SERVER);
+            try {
+                String result = HttpClientUtils.httpPostRequest(url,params);
+                if (result==null) {
+                    return false;
+                }
+                JSONObject jsonObject = JSON.parseObject(result);
+                if (jsonObject.get("status").toString().equals("200")) {
+                    return true;
+                }
+                logger.error("[opencron:agent auto regsiter error:{}]",jsonObject.get("message"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return false;
     }
 
     class AgentHeartBeat {
@@ -469,8 +565,15 @@ public class AgentProcessor implements Opencron.Iface {
                         } catch (IOException e) {
                             logger.debug("[opencron]:heartbeat error:{}", e.getMessage());
                             try {
+                                int tryIndex = 0;
+                                boolean autoReg = false;
+                                //失联后自动发起注册...
+                                while (!autoReg||tryIndex<3) {
+                                    autoReg = register();
+                                    ++tryIndex;
+                                }
                                 AgentHeartBeat.this.stop();
-                            } catch (IOException e1) {
+                            } catch (Exception e1) {
                                 logger.debug("[opencron]:heartbeat error:{}", e1.getMessage());
                             }
                         }

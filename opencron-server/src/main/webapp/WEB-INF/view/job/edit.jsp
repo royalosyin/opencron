@@ -6,7 +6,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
 
     <style type="text/css">
         .subJobTips {
@@ -20,7 +19,7 @@
 
         .subJobUl li{
             background-color: rgba(0,0,0,0.3);
-            border-radius: 4px;
+            border-radius: 1px;
             height: 26px;
             list-style: outside none none;
             margin-top: -27px;
@@ -67,14 +66,14 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type:"POST",
-                    url:"${contextPath}/job/checkname",
+                    url:"${contextPath}/job/checkname.do",
                     data:{
                         "jobId":jobId,
                         "name":jobName,
                         "agentId":$("#agentId").val()
                     },
                     success:function(data){
-                        if (data == "yes"){
+                        if (data){
                             $("#checkJobName").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;作业名称可用' + "</font>");
                             return false;
                         }else {
@@ -109,13 +108,13 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type:"POST",
-                    url:"${contextPath}/verify/exp",
+                    url:"${contextPath}/verify/exp.do",
                     data:{
                         "cronType":cronType,
                         "cronExp":cronExp
                     },
                     success:function(data){
-                        if (data == "success"){
+                        if (data){
                             $("#checkcronExp").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;语法正确' + "</font>");
                             return;
                         }else {
@@ -195,6 +194,12 @@
                 return false;
             }
 
+            var successExit = $("#successExit").val();
+            if( successExit!=null && isNaN(successExit) ) {
+                alert("自定义成功标识必须为数字");
+                return false;
+            }
+
             var timeout = $("#timeout").val();
             if(isNaN(timeout)||parseInt(timeout)<0){
                 alert("请填写正确的超时时间")
@@ -253,25 +258,25 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/job/checkname",
+                url:"${contextPath}/job/checkname.do",
                 data:{
                     "jobId":jobId,
                     "name":jobName,
                     "agentId":$("#agentId").val()
                 },
                 success:function(data){
-                    if (data == "yes"){
+                    if (data){
                         if (execType == 0 && cronExp){
                             $.ajax({
                                 headers:{"csrf":"${csrf}"},
                                 type:"POST",
-                                url:"${contextPath}/verify/exp",
+                                url:"${contextPath}/verify/exp.do",
                                 data:{
                                     "cronType":cronType,
                                     "cronExp":cronExp
                                 },
                                 success:function(data){
-                                    if (data == "success"){
+                                    if (data){
                                         codeCommand();
                                         $("#job").submit();
                                         return false;
@@ -305,7 +310,7 @@
         }
 
         function codeCommand() {
-            $("#command").val(encode($("#command").val()));
+            $("#command").val(toBase64($("#command").val()));
         }
 
         function addSubJob(){
@@ -342,6 +347,12 @@
                 return false;
             }
 
+            var successExit = $("#successExit1").val();
+            if( successExit!=null && isNaN(successExit) ) {
+                alert("自定义成功标识必须为数字");
+                return false;
+            }
+
             var redo = $('input[type="radio"][name="redo1"]:checked').val();
             if (redo == 1){
                 if (!$("#runCount1").val()){
@@ -357,7 +368,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/job/checkname",
+                url:"${contextPath}/job/checkname.do",
                 data:{
                     "jobId":$("#jobId1").val(),
                     "name":jobName,
@@ -365,7 +376,7 @@
                 },
 
                 success:function(data) {
-                    if (data == "no"){
+                    if (!data){
                         alert("作业名称已存在!");
                         return false;
                     }else {
@@ -384,7 +395,9 @@
                                 '<input type="hidden" name="child.agentId" value="' + $("#agentId1").val() + '">' +
                                 '<input type="hidden" name="child.redo" value="'+$("input[type='radio'][name='redo1']:checked").val()+'">'+
                                 '<input type="hidden" name="child.runCount" value="' + $("#runCount1").val() + '">' +
-                                '<input type="hidden" name="child.command" value="' + encode($("#command1").val()) + '">' +
+                                '<input type="hidden" name="child.command" value="' + toBase64($("#command1").val()) + '">' +
+                                '<input type="hidden" name="child.runAs" value="' + $("#runAs1").val() + '">' +
+                                '<input type="hidden" name="child.successExit" value="' + $("#successExit1").val() + '">' +
                                 '<input type="hidden" name="child.timeout" value="' + $("#timeout1").val() + '">' +
                                 '<input type="hidden" name="child.comment" value="' + escapeHtml($("#comment1").val()) + '">' +
                             '</li>';
@@ -405,7 +418,7 @@
                                 }
 
                                 if (elem.attr("name") == "child.command") {
-                                    elem.val(encode($("#command1").val()));
+                                    elem.val(toBase64($("#command1").val()));
                                 }
                             });
 
@@ -448,7 +461,7 @@
                 }
                 if ($(elem).attr("name") == "child.command") {
                     try {
-                        $("#command1").val(decode(elem.val()));
+                        $("#command1").val(passBase64(elem.val()));
                     }catch (e) {
                     }
                 }
@@ -472,13 +485,14 @@
     </script>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -499,7 +513,7 @@
 
     <div class="block-area" id="basic">
         <div class="tile p-15">
-            <form class="form-horizontal" role="form" id="job" action="${contextPath}/job/save" method="post"><br>
+            <form class="form-horizontal" role="form" id="job" action="${contextPath}/job/save.do" method="post"><br>
                 <input type="hidden" name="csrf" value="${csrf}">
                 <input type="hidden" id="jobId" name="jobId" value="${job.jobId}">
                 <input type="hidden" name="userId" value="${job.userId}">
@@ -560,6 +574,22 @@
                 </div><br>
 
                 <div class="form-group">
+                    <label for="runAs" class="col-lab control-label"><i class="glyphicons glyphicons-user"></i>&nbsp;&nbsp;运行身份：</label>
+                    <div class="col-md-10">
+                        <input type="text" class="form-control input-sm" id="runAs" name="runAs" value="root">
+                        <span class="tips"><b>*&nbsp;</b>该任务以哪个身份执行(默认是root)</span>
+                    </div>
+                </div><br>
+
+                <div class="form-group">
+                    <label for="successExit" class="col-lab control-label"><i class="glyphicons glyphicons-tags"></i>&nbsp;&nbsp;成功标识：</label>
+                    <div class="col-md-10">
+                        <input type="text" class="form-control input-sm" id="successExit" name="successExit" value="0">
+                        <span class="tips"><b>*&nbsp;</b>自定义作业执行成功的返回标识(默认执行成功是0)</span>
+                    </div>
+                </div><br>
+
+                <div class="form-group">
                     <label class="col-lab control-label"><i class="glyphicon  glyphicon glyphicon-forward"></i>&nbsp;&nbsp;重新执行：</label>
                     <div class="col-md-10">
                         <label onclick="showCountDiv()" for="redo01" class="radio-label"><input type="radio" name="redo" value="1" id="redo01" ${job.redo eq 1 ? 'checked' : ''}>是&nbsp;&nbsp;&nbsp;</label>
@@ -614,6 +644,8 @@
                                     <input type="hidden" name="child.runCount" value="${c.runCount}">
                                     <input type="hidden" name="child.command" value="${cron:toBase64(c.command)}">
                                     <input type="hidden" name="child.timeout" value="${c.timeout}">
+                                    <input type="hidden" name="child.runAs" value="${c.runAs}">
+                                    <input type="hidden" name="child.successExit" value="${c.successExit}">
                                     <input type="hidden" name="child.comment" value="${c.comment}">
                                 </li>
                             </c:forEach>
@@ -677,7 +709,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4 id="subTitle" action="add" tid="" >添加子作业</h4>
                 </div>
                 <div class="modal-body">
@@ -719,6 +751,23 @@
                         </div><br>
 
                         <div class="form-group">
+                            <label for="runAs1" class="col-lab control-label">运行身份：</label>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="runAs1" name="runAs1" value="root">
+                                <span class="tips"><b>*&nbsp;</b>该任务以哪个身份执行(默认是root)</span>
+                            </div>
+                        </div><br>
+
+                        <div class="form-group">
+                            <label for="successExit1" class="col-lab control-label">成功标识：</label>
+                            <div class="col-md-9">
+                                <input type="text" class="form-control" id="successExit1" name="successExit1" value="0">
+                                <span class="tips"><b>*&nbsp;</b>自定义作业执行成功的返回标识(默认执行成功是0)</span>
+                            </div>
+                        </div><br>
+
+
+                        <div class="form-group">
                             <label class="col-lab control-label" title="执行失败时是否自动重新执行">重新执行：</label>&nbsp;&nbsp;
                             <label onclick="showCountDiv1()" for="redo1" class="radio-label"><input type="radio" name="redo1" value="1" id="redo1"> 是&nbsp;&nbsp;&nbsp;</label>
                             <label onclick="hideCountDiv1()" for="redo0" class="radio-label"><input type="radio" name="redo1" value="0" id="redo0" checked> 否</label><br>
@@ -749,6 +798,8 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>
+

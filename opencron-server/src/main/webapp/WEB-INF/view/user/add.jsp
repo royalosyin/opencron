@@ -6,10 +6,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-
-    <link href='${contextPath}/css/jquery.mCustomScrollbar.css?resId=${resourceId}' rel='stylesheet'>
-    <script src="${contextPath}/js/jquery.mCustomScrollbar.min.js?resId=${resourceId}"></script>
+    <link href='${contextPath}/static/css/jquery.mCustomScrollbar.css?resId=${resourceId}' rel='stylesheet'>
+    <script src="${contextPath}/static/js/jquery.mCustomScrollbar.min.js?resId=${resourceId}"></script>
 
     <script type="text/javascript">
 
@@ -68,12 +66,12 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type:"POST",
-                url:"${contextPath}/user/checkname",
+                url:"${contextPath}/user/checkname.do",
                 data:{
                     "name":name
                 },
                 success:function(data){
-                    if (data == "yes"){
+                    if (data){
                         $("#user").submit();
                         return false;
                     }else {
@@ -98,12 +96,12 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type:"POST",
-                    url:"${contextPath}/user/checkname",
+                    url:"${contextPath}/user/checkname.do",
                     data:{
                         "name":$("#name").val()
                     },
                     success:function(data){
-                        if (data == "yes"){
+                        if (data){
                             $("#checkname").html("<font color='green'>" + '<i class="glyphicon glyphicon-ok-sign"></i>&nbsp;用户名可用' + "</font>");
                             return false;
                         }else {
@@ -198,15 +196,15 @@
         });
 
     </script>
-
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -224,7 +222,7 @@
 
     <div class="block-area" id="basic">
         <div class="tile p-15">
-            <form class="form-horizontal" role="form" id="user" action="${contextPath}/user/add" method="post"><br>
+            <form class="form-horizontal" role="form" id="user" action="${contextPath}/user/add.do" method="post"><br>
                 <input type="hidden" name="csrf" value="${csrf}">
                 <div class="form-group">
                     <label for="name" class="col-lab control-label"><i class="glyphicon glyphicon-user"></i>&nbsp;&nbsp;用&nbsp;&nbsp;户&nbsp;&nbsp;名：</label>
@@ -318,6 +316,8 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+
+</body>
+
+</html>

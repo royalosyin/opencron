@@ -22,14 +22,16 @@
 
 package org.opencron.common.job;
 
-
 public enum Action implements org.apache.thrift.TEnum {
   PING(0),
-  EXECUTE(1),
-  PASSWORD(2),
-  KILL(3),
-  MONITOR(4),
-  PROXY(5);
+  PATH(1),
+  MONITOR(2),
+  EXECUTE(3),
+  PASSWORD(4),
+  KILL(5),
+  PROXY(6),
+  GUID(7),
+  RESTART(8);
 
   private final int value;
 
@@ -53,22 +55,28 @@ public enum Action implements org.apache.thrift.TEnum {
       case 0:
         return PING;
       case 1:
-        return EXECUTE;
+        return PATH;
       case 2:
-        return PASSWORD;
-      case 3:
-        return KILL;
-      case 4:
         return MONITOR;
+      case 3:
+        return EXECUTE;
+      case 4:
+        return PASSWORD;
       case 5:
+        return KILL;
+      case 6:
         return PROXY;
+      case 7:
+        return GUID;
+      case 8:
+        return RESTART;
       default:
         return null;
     }
   }
 
   public static Action findByName(String name) {
-    for (Action action:Action.values()) {
+    for (Action action: Action.values()) {
       if (action.name().equalsIgnoreCase(name)) {
         return action;
       }

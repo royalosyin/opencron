@@ -25,7 +25,6 @@ import java.util.*;
 
 import com.alibaba.fastjson.JSON;
 import org.opencron.common.job.Opencron;
-import org.opencron.common.job.Opencron.ExecType;
 import org.opencron.common.utils.DigestUtils;
 import org.opencron.common.utils.StringUtils;
 import org.opencron.server.domain.Job;
@@ -33,7 +32,6 @@ import org.opencron.server.job.OpencronTools;
 import org.opencron.server.service.*;
 import org.opencron.server.tag.PageBean;
 import org.opencron.common.utils.CommonUtils;
-import org.opencron.common.utils.WebUtils;
 import org.opencron.server.domain.Agent;
 import org.opencron.server.vo.JobVo;
 import org.quartz.SchedulerException;
@@ -41,17 +39,21 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import static org.opencron.common.utils.CommonUtils.notEmpty;
+import static org.opencron.common.utils.WebUtils.*;
 
 @Controller
 @RequestMapping("/job")
-public class JobController  extends BaseController{
+public class JobController extends BaseController {
 
     @Autowired
     private ExecuteService executeService;
@@ -68,8 +70,8 @@ public class JobController  extends BaseController{
     @Autowired
     private SchedulerService schedulerService;
 
-    @RequestMapping("/view")
-    public String view(HttpSession session,HttpServletRequest request,PageBean pageBean, JobVo job, Model model) {
+    @RequestMapping("/view.htm")
+    public String view(HttpSession session, HttpServletRequest request, PageBean pageBean, JobVo job, Model model) {
 
         model.addAttribute("agents", agentService.getOwnerAgents(session));
 
@@ -89,21 +91,46 @@ public class JobController  extends BaseController{
         if (notEmpty(job.getRedo())) {
             model.addAttribute("redo", job.getRedo());
         }
-        jobService.getJobVos(session,pageBean, job);
+        jobService.getJobVos(session, pageBean, job);
         if (request.getParameter("refresh") != null) {
             return "/job/refresh";
         }
         return "/job/view";
     }
 
-    @RequestMapping("/checkname")
-    public void checkName(HttpServletResponse response, Long jobId, Long agentId, String name) {
-        String result = jobService.checkName(jobId, agentId, name);
-        WebUtils.writeHtml(response, result);
+    /**
+     * 同一台执行器上不能有重复名字的job
+     *
+     * @param jobId
+     * @param agentId
+     * @param name
+     */
+    @RequestMapping(value = "/checkname.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean checkName(Long jobId, Long agentId, String name) {
+        return !jobService.existsName(jobId, agentId, name);
     }
 
-    @RequestMapping("/addpage")
-    public String addpage(HttpSession session,Model model, Long id) {
+    @RequestMapping(value = "/checkdel.do",method= RequestMethod.POST)
+    @ResponseBody
+    public String checkDelete(Long id) {
+        return jobService.checkDelete(id);
+    }
+
+    @RequestMapping(value = "/delete.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean delete(Long id) {
+        try {
+            jobService.delete(id);
+            return true;
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @RequestMapping("/add.htm")
+    public String addpage(HttpSession session, Model model, Long id) {
         if (notEmpty(id)) {
             Agent agent = agentService.getAgent(id);
             model.addAttribute("agent", agent);
@@ -113,25 +140,26 @@ public class JobController  extends BaseController{
         return "/job/add";
     }
 
-    @RequestMapping(value = "/save")
-    public String save(HttpSession session,Job job, HttpServletRequest request) throws SchedulerException {
-        job.setCommand( DigestUtils.passBase64(job.getCommand()));
-        job.setStatus(true);//Job有效
-        if (job.getJobId()!=null) {
+    @RequestMapping(value = "/save.do",method= RequestMethod.POST)
+    public String save(HttpSession session, Job job, HttpServletRequest request) throws SchedulerException {
+        job.setCommand(DigestUtils.passBase64(job.getCommand()));
+        job.setDeleted(false);
+        if (job.getJobId() != null) {
             Job job1 = jobService.getJob(job.getJobId());
-            if (!jobService.checkJobOwner(session,job1.getUserId())) return "redirect:/job/view?csrf="+ OpencronTools.getCSRF(session);
+            if (!jobService.checkJobOwner(session, job1.getUserId()))
+                return "redirect:/job/view.htm?csrf=" + OpencronTools.getCSRF(session);
             /**
              * 将数据库中持久化的作业和当前修改的合并,当前修改的属性覆盖持久化的属性...
              */
-            BeanUtils.copyProperties(job1,job,"jobName","cronType","cronExp","command","execType","comment","redo","runCount","jobType","runModel","warning","mobiles","emailAddress","timeout");
+            BeanUtils.copyProperties(job1, job, "jobName", "cronType", "cronExp", "command", "execType", "comment","runAs","successExit", "redo", "runCount", "jobType", "runModel", "warning", "mobiles", "emailAddress", "timeout");
         }
 
         //单任务
-        if ( Opencron.JobType.SINGLETON.getCode().equals(job.getJobType()) ) {
-            job.setUserId( OpencronTools.getUserId(session) );
+        if (Opencron.JobType.SINGLETON.getCode().equals(job.getJobType())) {
+            job.setUserId(OpencronTools.getUserId(session));
             job.setUpdateTime(new Date());
             job.setLastChild(false);
-            job = jobService.addOrUpdate(job);
+            job = jobService.merge(job);
         } else { //流程任务
             Map<String, String[]> map = request.getParameterMap();
             Object[] jobName = map.get("child.jobName");
@@ -142,62 +170,74 @@ public class JobController  extends BaseController{
             Object[] runCount = map.get("child.runCount");
             Object[] timeout = map.get("child.timeout");
             Object[] comment = map.get("child.comment");
-            List<Job> chindren = new ArrayList<Job>(0);
+            Object[] runAs = map.get("child.runAs");
+            Object[] successExit = map.get("child.successExit");
+            List<Job> children = new ArrayList<Job>(0);
             for (int i = 0; i < jobName.length; i++) {
-                Job chind = new Job();
+                Job child = new Job();
                 if (CommonUtils.notEmpty(jobId[i])) {
                     //子任务修改的..
                     Long jobid = Long.parseLong((String) jobId[i]);
-                    chind = jobService.getJob(jobid);
+                    child = jobService.getJob(jobid);
                 }
                 /**
                  * 新增并行和串行,子任务和最顶层的父任务一样
                  */
-                chind.setRunModel(job.getRunModel());
-                chind.setJobName(StringUtils.htmlEncode( (String)jobName[i]) );
-                chind.setAgentId(Long.parseLong((String) agentId[i]));
-                chind.setCommand(DigestUtils.passBase64((String) command[i]));
-                chind.setCronExp(job.getCronExp());
-                chind.setComment(StringUtils.htmlEncode( (String) comment[i]) );
-                chind.setTimeout(Integer.parseInt((String) timeout[i]));
-                chind.setRedo(Integer.parseInt((String) redo[i]));
-                chind.setStatus(true);
-                if (chind.getRedo() == 0) {
-                    chind.setRunCount(null);
+                child.setRunModel(job.getRunModel());
+                child.setJobName(StringUtils.htmlEncode((String) jobName[i]));
+                child.setAgentId(Long.parseLong((String) agentId[i]));
+                child.setCommand(DigestUtils.passBase64((String) command[i]));
+                child.setJobType(Opencron.JobType.FLOW.getCode());
+                child.setComment(StringUtils.htmlEncode((String) comment[i]));
+                child.setRunAs(StringUtils.htmlEncode((String) runAs[i]));
+                child.setSuccessExit(StringUtils.htmlEncode((String) successExit[i]));
+                child.setTimeout(Integer.parseInt((String) timeout[i]));
+                child.setRedo(Integer.parseInt((String) redo[i]));
+                child.setDeleted(false);
+                if (child.getRedo() == 0) {
+                    child.setRunCount(null);
                 } else {
-                    chind.setRunCount(Integer.parseInt((String) runCount[i]));
+                    child.setRunCount(Integer.parseInt((String) runCount[i]));
                 }
-                chindren.add(chind);
+                children.add(child);
             }
 
             //流程任务必须有子任务,没有的话不保存
-            if (CommonUtils.isEmpty(chindren)) {
-                return "redirect:/job/view?csrf="+ OpencronTools.getCSRF(session);
+            if (CommonUtils.isEmpty(children)) {
+                return "redirect:/job/view.htm?csrf=" + OpencronTools.getCSRF(session);
             }
 
             if (job.getUserId() == null) {
-                job.setUserId( OpencronTools.getUserId(session));
+                job.setUserId(OpencronTools.getUserId(session));
             }
 
-            jobService.saveFlowJob(job, chindren);
+            jobService.saveFlowJob(job, children);
         }
 
-        schedulerService.syncJobTigger(job.getJobId(),executeService);
+        schedulerService.syncJobTigger(job.getJobId(), executeService);
 
-        return "redirect:/job/view?csrf="+ OpencronTools.getCSRF(session);
+        return "redirect:/job/view.htm?csrf=" + OpencronTools.getCSRF(session);
     }
 
-    @RequestMapping("/editsingle")
-    public void editSingleJob(HttpSession session,HttpServletResponse response, Long id) {
+    @RequestMapping("/editsingle.do")
+    public void editSingleJob(HttpSession session, HttpServletResponse response, Long id) {
         JobVo job = jobService.getJobVoById(id);
-        if (!jobService.checkJobOwner(session,job.getUserId()))return;
-        WebUtils.writeJson(response, JSON.toJSONString(job));
+        if (job == null) {
+            write404(response);
+            return;
+        }
+        if (!jobService.checkJobOwner(session, job.getUserId())) return;
+        writeJson(response, JSON.toJSONString(job));
     }
 
-    @RequestMapping("/editflow")
-    public String editFlowJob(HttpSession session,Model model, Long id) {
+    @RequestMapping("/editflow.htm")
+    public String editFlowJob(HttpSession session, Model model, Long id) {
         JobVo job = jobService.getJobVoById(id);
-        if (!jobService.checkJobOwner(session,job.getUserId()))return "redirect:/job/view?csrf="+ OpencronTools.getCSRF(session);
+        if (job == null) {
+            return "/error/404";
+        }
+        if (!jobService.checkJobOwner(session, job.getUserId()))
+            return "redirect:/job/view.htm?csrf=" + OpencronTools.getCSRF(session);
         model.addAttribute("job", job);
         List<Agent> agents = agentService.getOwnerAgents(session);
         model.addAttribute("agents", agents);
@@ -205,89 +245,103 @@ public class JobController  extends BaseController{
     }
 
 
-    @RequestMapping("/edit")
-    public void edit(HttpSession session,HttpServletResponse response,Job job) throws SchedulerException {
-        Job jober = jobService.getJob(job.getJobId());
-        if (!jobService.checkJobOwner(session,jober.getUserId())) return;
-        jober.setExecType(job.getExecType());
-        jober.setCronType(job.getCronType());
-        jober.setCommand(DigestUtils.passBase64(job.getCommand()));
-        jober.setJobName(job.getJobName());
-        jober.setRedo(job.getRedo());
-        jober.setRunCount(job.getRunCount());
-        jober.setWarning(job.getWarning());
-        jober.setTimeout(job.getTimeout());
-        if (jober.getWarning()) {
-            jober.setMobiles(job.getMobiles());
-            jober.setEmailAddress(job.getEmailAddress());
+    @RequestMapping(value = "/edit.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean edit(HttpSession session,Job job) throws SchedulerException {
+        Job dbJob = jobService.getJob(job.getJobId());
+        if (!jobService.checkJobOwner(session, dbJob.getUserId())) return false;
+        dbJob.setExecType(job.getExecType());
+        dbJob.setCronType(job.getCronType());
+        dbJob.setCronExp(job.getCronExp());
+        dbJob.setCommand(DigestUtils.passBase64(job.getCommand()));
+        dbJob.setJobName(job.getJobName());
+        dbJob.setRunAs(job.getRunAs());
+        dbJob.setSuccessExit(job.getSuccessExit());
+        dbJob.setRedo(job.getRedo());
+        dbJob.setRunCount(job.getRunCount());
+        dbJob.setWarning(job.getWarning());
+        dbJob.setTimeout(job.getTimeout());
+        if (dbJob.getWarning()) {
+            dbJob.setMobiles(job.getMobiles());
+            dbJob.setEmailAddress(job.getEmailAddress());
         }
-        jober.setComment(job.getComment());
-        jober.setUpdateTime(new Date());
-        jobService.addOrUpdate(jober);
-        schedulerService.syncJobTigger(jober.getJobId(),executeService);
-        WebUtils.writeHtml(response, "success");
+        dbJob.setComment(job.getComment());
+        dbJob.setUpdateTime(new Date());
+        jobService.merge(dbJob);
+        schedulerService.syncJobTigger(dbJob.getJobId(), executeService);
+        return true;
     }
 
-    @RequestMapping("/editcmd")
-    public void editCmd(HttpSession session,HttpServletResponse response,Long jobId, String command) throws SchedulerException {
+    @RequestMapping(value = "/editcmd.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean editCmd(HttpSession session,Long jobId, String command) throws SchedulerException {
         command = DigestUtils.passBase64(command);
-        Job jober = jobService.getJob(jobId);
-        if (!jobService.checkJobOwner(session,jober.getUserId())) return;
-        jober.setCommand(command);
-        jober.setUpdateTime(new Date());
-        jobService.addOrUpdate(jober);
-        schedulerService.syncJobTigger(Opencron.JobType.FLOW.getCode().equals(jober.getJobType()) ? jober.getFlowId() : jober.getJobId(),executeService);
-        WebUtils.writeHtml(response, "success");
+        Job dbJob = jobService.getJob(jobId);
+        if (!jobService.checkJobOwner(session, dbJob.getUserId())) return false;
+        dbJob.setCommand(command);
+        dbJob.setUpdateTime(new Date());
+        jobService.merge(dbJob);
+        schedulerService.syncJobTigger(Opencron.JobType.FLOW.getCode().equals(dbJob.getJobType()) ? dbJob.getFlowId() : dbJob.getJobId(), executeService);
+        return true;
     }
 
-    @RequestMapping("/canrun")
-    public void canRun(Long id, HttpServletResponse response) {
-        WebUtils.writeJson(response, recordService.isRunning(id).toString());
+    @RequestMapping(value = "/canrun.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean canRun(Long id) {
+        return recordService.isRunning(id);
     }
 
-    @RequestMapping("/execute")
-    public void remoteExecute(HttpSession session,Long id) {
+    @RequestMapping(value = "/execute.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean remoteExecute(HttpSession session, Long id) {
         JobVo job = jobService.getJobVoById(id);//找到要执行的任务
-        if (!jobService.checkJobOwner(session,job.getUserId())) return;
+        if (!jobService.checkJobOwner(session, job.getUserId())) return false;
         //手动执行
         Long userId = OpencronTools.getUserId(session);
         job.setUserId(userId);
-        job.setExecType(ExecType.OPERATOR.getStatus());
+        job.setExecType(Opencron.ExecType.OPERATOR.getStatus());
         job.setAgent(agentService.getAgent(job.getAgentId()));
         try {
             this.executeService.executeJob(job);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return true;
     }
 
-    @RequestMapping("/goexec")
-    public String goExec(HttpSession session,Model model) {
+    @RequestMapping("/goexec.htm")
+    public String goExec(HttpSession session, Model model) {
         model.addAttribute("agents", agentService.getOwnerAgents(session));
         return "/job/exec";
     }
 
-    @RequestMapping("/batchexec")
-    public void batchExec(HttpSession session, String command, String agentIds) {
-        if (notEmpty(agentIds) && notEmpty(command)){
+    @RequestMapping(value = "/batchexec.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean batchExec(HttpSession session, String command, String agentIds) {
+        if (notEmpty(agentIds) && notEmpty(command)) {
             command = DigestUtils.passBase64(command);
             Long userId = OpencronTools.getUserId(session);
             try {
-                this.executeService.batchExecuteJob(userId,command,agentIds);
+                this.executeService.batchExecuteJob(userId, command, agentIds);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        return true;
     }
 
-    @RequestMapping("/detail")
-    public String showDetail(HttpSession session,Model model,Long id) {
+    @RequestMapping("/detail/{id}.htm")
+    public String showDetail(HttpSession session, Model model,@PathVariable("id") Long id) {
         JobVo jobVo = jobService.getJobVoById(id);
-        if (!jobService.checkJobOwner(session,jobVo.getUserId())) return "redirect:/job/view?csrf="+ OpencronTools.getCSRF(session);
+        if (jobVo == null) {
+            return "/error/404";
+        }
+        if (!jobService.checkJobOwner(session, jobVo.getUserId())) {
+            return "redirect:/job/view.htm?csrf=" + OpencronTools.getCSRF(session);
+        }
         model.addAttribute("job", jobVo);
         return "/job/detail";
     }
-
 
 
 }

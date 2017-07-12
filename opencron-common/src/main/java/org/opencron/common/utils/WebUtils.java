@@ -18,7 +18,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.opencron.common.utils;
 
 import javax.servlet.ServletContext;
@@ -27,10 +26,13 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 
-
-public abstract class WebUtils {
+/**
+ * Created by benjobs on 2017/6/21.
+ */
+public class WebUtils implements Serializable{
 
     public static void writeXml(HttpServletResponse response, String xml) {
         response.setCharacterEncoding("UTF-8");
@@ -58,6 +60,13 @@ public abstract class WebUtils {
         response.setContentType("application/json");
         setContentLength(response,json);
         write(response, json);
+    }
+
+    public static void write404(HttpServletResponse response) {
+        response.setCharacterEncoding("UTF-8");
+        response.setContentType("application/json");
+        response.setStatus(404);
+        write(response, "{\"status\":404}");
     }
 
     private static void write(HttpServletResponse response, String content) {
@@ -112,4 +121,17 @@ public abstract class WebUtils {
         throw new IllegalArgumentException("obj must be {HttpServletRequest|HttpSession|ServletContext} ");
     }
 
+    public static String getIp(HttpServletRequest request) {
+        String ip = request.getHeader("x-forwarded-for");
+        if(ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)){
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if(ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)){
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if(ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)){
+            ip = request.getRemoteAddr();
+        }
+        return ip.equals("0:0:0:0:0:0:0:1")?"127.0.0.1":ip;
+    }
 }

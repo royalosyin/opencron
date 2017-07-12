@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -79,6 +80,7 @@ import static org.opencron.server.job.OpencronTools.SSH_SESSION_ID;
  */
 
 @Service
+@Transactional
 public class TerminalService {
 
     private static Logger logger = LoggerFactory.getLogger(TerminalService.class);
@@ -91,13 +93,13 @@ public class TerminalService {
         return terminal != null;
     }
 
-    public boolean saveOrUpdate(Terminal term) throws Exception {
+    public boolean merge(Terminal term) throws Exception {
         Terminal dbTerm = queryDao.sqlUniqueQuery(Terminal.class, "SELECT * FROM T_TERMINAL WHERE ID=?", term.getId());
         if (dbTerm != null) {
             term.setId(dbTerm.getId());
         }
         try {
-            queryDao.save(term);
+            queryDao.merge(term);
             return true;
         } catch (Exception e) {
             e.printStackTrace();
@@ -158,13 +160,13 @@ public class TerminalService {
             return "error";
         }
         queryDao.createSQLQuery("DELETE FROM T_TERMINAL WHERE id=?", term.getId()).executeUpdate();
-        return "success";
+        return "true";
     }
 
     public void login(Terminal terminal) {
         terminal = getById(terminal.getId());
         terminal.setLogintime(new Date());
-        queryDao.save(terminal);
+        queryDao.merge(terminal);
     }
 
     public List<Terminal> getListByUser(User user) {
@@ -174,7 +176,7 @@ public class TerminalService {
 
     public void theme(Terminal terminal, String theme) throws Exception {
         terminal.setTheme(theme);
-        saveOrUpdate(terminal);
+        merge(terminal);
     }
 
     public static class TerminalClient {

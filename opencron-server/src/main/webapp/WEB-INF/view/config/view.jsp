@@ -6,7 +6,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <jsp:include page="/WEB-INF/common/resource.jsp"/>
     <script type="text/javascript">
         function clearRecord() {
 
@@ -31,7 +30,7 @@
                 $.ajax({
                     headers:{"csrf":"${csrf}"},
                     type:"POST",
-                    url: "${contextPath}/config/clear",
+                    url: "${contextPath}/config/clear.do",
                     data: {
                         "startTime": startTime,
                         "endTime": endTime
@@ -42,13 +41,14 @@
         }
     </script>
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -65,7 +65,7 @@
             <tr>
                 <td class="item"><i class="glyphicon glyphicon-envelope"></i>&nbsp;发件邮箱：</td>
                 <td>${config.senderEmail}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <a class="green" href="${contextPath}/config/editpage?csrf=${csrf}" title="编辑"><i class="glyphicon glyphicon-pencil"></i></a>
+                <a class="green" href="${contextPath}/config/edit.htm?csrf=${csrf}" title="编辑"><i class="glyphicon glyphicon-pencil"></i></a>
                 </td>
             </tr>
 
@@ -87,7 +87,7 @@
             </tr>
             <tr>
                 <td class="item"><i class="glyphicon glyphicon-font"></i>&nbsp;发信URL：</td>
-                <td>${config.sendUrl}</td>
+                <td> ${cron:escapeHtml(config.sendUrl)}</td>
             </tr>
             <tr>
                 <td class="item"><i class="glyphicon glyphicon-time"></i>&nbsp;发送间隔：</td>
@@ -98,16 +98,16 @@
             <tr>
                 <td class="item"><i class="glyphicon glyphicon-list-alt"></i>&nbsp;短信模板：</td>
                 <td>
-                    ${config.template}
+                    ${cron:escapeHtml(config.template)}
                 </td>
             </tr>
             <tr>
                 <td class="item"><i class='glyphicon glyphicon-trash'></i>&nbsp;清理记录：</td>
                 <td>
                     <label for="startTime" class="label-self">时间&nbsp;: </label>
-                    <input type="text" style="border-radius: 2px;width: 90px" id="startTime" name="startTime" value="${startTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate select-self"/>
+                    <input type="text" style="width: 90px" id="startTime" name="startTime" value="${startTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate select-opencron"/>
                     <label for="endTime" class="label-self">&nbsp;至&nbsp;</label>
-                    <input type="text" style="border-radius: 2px;width: 90px" id="endTime" name="endTime" value="${endTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate select-self"/>&nbsp;
+                    <input type="text" style="width: 90px" id="endTime" name="endTime" value="${endTime}" onfocus="WdatePicker({onpicked:function(){},dateFmt:'yyyy-MM-dd'})" class="Wdate select-opencron"/>&nbsp;
                     <button onclick="clearRecord()" class="btn btn-default btn-sm" style="vertical-align:top;height: 25px;" type="button"><i class="glyphicon glyphicon-trash"></i>&nbsp;清理</button><span class="tips">&nbsp;&nbsp;&nbsp;（<b>*&nbsp;</b>此操作会删除选定时间段内的任务记录，请谨慎执行）</span>
                 </td>
             </tr>
@@ -117,6 +117,8 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>
+

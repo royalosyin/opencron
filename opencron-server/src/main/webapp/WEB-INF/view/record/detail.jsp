@@ -5,16 +5,15 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-</head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+<head></head>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -34,7 +33,7 @@
                 <td><i class="glyphicon glyphicon-tasks"></i>&nbsp;任务名称</td>
                 <td>
                     <c:if test="${empty record.jobName}">batchJob</c:if>
-                    <c:if test="${!empty record.jobName}"><a href="${contextPath}/job/detail?id=${record.jobId}&csrf=${csrf}">${record.jobName}</a></c:if>
+                    <c:if test="${!empty record.jobName}">${record.jobName}</c:if>
                 </td>
                 <td><i class="glyphicon glyphicon-th-large"></i>&nbsp;执行命令</td>
                 <td>${cron:escapeHtml(record.command)}</td>
@@ -42,12 +41,10 @@
 
             <tr>
                 <td><i class="glyphicon glyphicon-leaf"></i>&nbsp;执&nbsp;&nbsp;行&nbsp;&nbsp;器</td>
-                <td><a href="${contextPath}/agent/detail?id=${record.agentId}&csrf=${csrf}">${record.agentName}</a></td>
+                <td>${record.agentName}</td>
 
                 <td><i class="glyphicon glyphicon-user"></i>&nbsp;作&nbsp;&nbsp;业&nbsp;&nbsp;人</td>
-                <td>
-                    <c:if test="${permission eq true}"><a href="${contextPath}/user/detail?userId=${record.userId}&csrf=${csrf}">${record.operateUname}</a></c:if>
-                    <c:if test="${permission eq false}">${record.operateUname}</c:if></td>
+                <td>${record.operateUname}</td>
             </tr>
             <tr>
                 <td><i class="glyphicon glyphicon-hdd"></i>&nbsp;机&nbsp;&nbsp;器&nbsp;&nbsp;IP</td>
@@ -107,6 +104,7 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

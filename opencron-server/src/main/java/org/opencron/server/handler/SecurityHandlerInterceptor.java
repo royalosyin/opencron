@@ -25,7 +25,6 @@ package org.opencron.server.handler;
 
 import org.opencron.common.utils.CommonUtils;
 import org.opencron.common.utils.StringUtils;
-import org.opencron.common.utils.WebUtils;
 import org.opencron.server.domain.User;
 import org.opencron.server.job.OpencronTools;
 import org.slf4j.Logger;
@@ -48,9 +47,11 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityHandlerInterceptor.class);
 
-    public boolean preHandle(HttpServletRequest request,HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
         request = new XssHttpServletRequest(request);
+
+        request.setAttribute("uri",request.getRequestURI());
 
         HttpSession session = request.getSession();
 
@@ -60,24 +61,25 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
         // 考虑到以后升级可能会改css或者js,用户重新升级部署后肯能有缓存,导致项目失败,
         // 特此加上防止用户端有缓存的Id来防止资源缓存,每次项目启动会生成一个随机码添加到所有的资源引用后
         //
-        session.setAttribute("resourceId",OpencronTools.getResourceId());
+        session.setAttribute("resourceId", OpencronTools.getResourceId());
 
         //静态资源,页面
-        if ( requestURI.contains("/css/")
-                || requestURI.contains("/fonts/")
-                || requestURI.contains("/img/")
-                || requestURI.contains("/js/")
-                || requestURI.contains("/WEB-INF") ) {
+        if (requestURI.equals("/")
+                ||requestURI.contains("/static/")
+                || requestURI.contains("/WEB-INF")
+                ||requestURI.contains("/login")
+                || requestURI.contains("/upload")
+                || requestURI.contains("/agent/autoreg")) {
+
             return super.preHandle(request, response, handler);
         }
 
-        //登陆
-        if (requestURI.contains("/login")||requestURI.contains("/upload")) {
-            return super.preHandle(request, response, handler);
-        }
+        String port = request.getServerPort() == 80 ? "" : (":"+request.getServerPort());
+        String path = request.getContextPath().replaceAll("/$","");
+        String urlPath = request.getScheme()+"://"+request.getServerName()+port+path;
 
         String referer = request.getHeader("referer");
-        if (referer != null && !referer.startsWith(WebUtils.getWebUrlPath(request))) {
+        if (referer != null && !referer.startsWith(urlPath)) {
             response.sendRedirect("/");
             logger.info("[opencron]Bad request,redirect to login page");
             OpencronTools.invalidSession(session);
@@ -92,7 +94,7 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
                 logger.info("[opencron]User not login,redirect to login page");
                 return false;
             }
-        }catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
             logger.info("[opencron]Session already invalidated,redirect to login page");
             response.sendRedirect("/");
             return false;
@@ -123,15 +125,15 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
 
     private boolean verifyCSRF(HttpServletRequest request) {
 
-        String requstCSRF = OpencronTools.getCSRF(request);
-        if (CommonUtils.isEmpty(requstCSRF)) {
+        String requestCSRF = OpencronTools.getCSRF(request);
+        if (CommonUtils.isEmpty(requestCSRF)) {
             return false;
         }
         String sessionCSRF = OpencronTools.getCSRF(request.getSession());
         if (CommonUtils.isEmpty(sessionCSRF)) {
             return false;
         }
-        return requstCSRF.equals(sessionCSRF);
+        return requestCSRF.equals(sessionCSRF);
     }
 
 
@@ -140,9 +142,10 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
         public XssHttpServletRequest(HttpServletRequest servletRequest) {
             super(servletRequest);
         }
+
         public String[] getParameterValues(String parameter) {
             String[] values = super.getParameterValues(parameter);
-            if (values==null)  {
+            if (values == null) {
                 return null;
             }
             int count = values.length;
@@ -155,31 +158,34 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
 
         public Map getParameterMap() {
             Map<String, String[]> map = super.getParameterMap();
-            for(Map.Entry<String,String[]> entry:map.entrySet()){
+            for (Map.Entry<String, String[]> entry : map.entrySet()) {
                 String[] values = entry.getValue();
-                for(int i=0;i<values.length;i++){
+                for (int i = 0; i < values.length; i++) {
                     values[i] = cleanXSS(values[i]);
                 }
-                map.put(entry.getKey(),values);
+                map.put(entry.getKey(), values);
             }
             return map;
         }
 
         public Enumeration getParameterNames() {
 
-           class MyEnumeration implements Enumeration {
+            class MyEnumeration implements Enumeration {
                 private int count;
                 private int length;
                 private Object[] data;
+
                 MyEnumeration(Object[] data) {
                     this.count = 0;
                     this.length = data.length;
                     this.data = data;
                 }
+
                 @Override
                 public boolean hasMoreElements() {
-                    return (count< length);
+                    return (count < length);
                 }
+
                 @Override
                 public Object nextElement() {
                     return data[count++];
@@ -189,7 +195,7 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
             List<Object> list = new ArrayList<Object>();
             while (enumeration.hasMoreElements()) {
                 Object value = enumeration.nextElement();
-                value = cleanXSS((String)value);
+                value = cleanXSS((String) value);
                 list.add(value);
             }
             return new MyEnumeration(list.toArray());
@@ -204,7 +210,7 @@ public class SecurityHandlerInterceptor extends HandlerInterceptorAdapter {
         }
 
         private String cleanXSS(String value) {
-            if (value==null) return null;
+            if (value == null) return null;
             return StringUtils.htmlEncode(value);
         }
     }

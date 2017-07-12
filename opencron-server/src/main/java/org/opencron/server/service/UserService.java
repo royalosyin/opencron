@@ -43,6 +43,7 @@ import java.util.List;
  * Created by ChenHui on 2016/2/18.
  */
 @Service
+@Transactional
 public class UserService {
 
     @Autowired
@@ -62,13 +63,13 @@ public class UserService {
     }
 
     public void addUser(User user) {
-        String saltstr = CommonUtils.uuid(16);
-        user.setSalt(saltstr);
-        byte[] salt = Encodes.decodeHex(saltstr);
+        String salter = CommonUtils.uuid(16);
+        user.setSalt(salter);
+        byte[] salt = Encodes.decodeHex(salter);
         String saltPassword = Encodes.encodeHex(Digests.sha1(user.getPassword().getBytes(), salt, 1024));
         user.setPassword(saltPassword);
         user.setCreateTime(new Date());
-        queryDao.save(user);
+        queryDao.merge(user);
     }
 
     public User getUserById(Long id) {
@@ -76,12 +77,11 @@ public class UserService {
     }
 
     public void updateUser(User user) {
-        queryDao.save(user);
+        queryDao.merge(user);
     }
 
-    @Transactional(readOnly = false)
     public User uploadimg(File file, Long userId) throws IOException {
-        return uploadDao.uploadimg(file,userId);
+        return uploadDao.uploadimg(file, userId);
     }
 
     public User queryUserById(Long id) {
@@ -98,8 +98,8 @@ public class UserService {
             if (pwd1.equals(pwd2)) {
                 byte[] hashPwd = Digests.sha1(pwd1.getBytes(), salt, 1024);
                 user.setPassword(Encodes.encodeHex(hashPwd));
-                queryDao.save(user);
-                return "success";
+                queryDao.merge(user);
+                return "true";
             } else {
                 return "two";
             }
@@ -108,9 +108,9 @@ public class UserService {
         }
     }
 
-    public String checkName(String name) {
+    public boolean existsName(String name) {
         String sql = "SELECT COUNT(1) FROM T_USER WHERE userName=?";
-        return (queryDao.getCountBySql(sql, name)) > 0L ? "no" : "yes";
+        return (queryDao.getCountBySql(sql, name)) > 0L;
     }
 
 

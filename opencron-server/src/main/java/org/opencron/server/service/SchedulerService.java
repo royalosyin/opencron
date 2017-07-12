@@ -68,8 +68,8 @@ public final class SchedulerService {
     }
 
     public void put(List<JobVo> jobs, Job jobBean) throws SchedulerException {
-        for(JobVo jobVo:jobs){
-            put(jobVo,jobBean);
+        for (JobVo jobVo : jobs) {
+            put(jobVo, jobBean);
         }
     }
 
@@ -100,13 +100,13 @@ public final class SchedulerService {
     }
 
     public void startQuartz() throws SchedulerException {
-        if (quartzScheduler!=null && !quartzScheduler.isStarted()) {
+        if (quartzScheduler != null && !quartzScheduler.isStarted()) {
             quartzScheduler.start();
         }
     }
 
     public void shutdown() throws SchedulerException {
-        if (quartzScheduler!=null && !quartzScheduler.isShutdown()) {
+        if (quartzScheduler != null && !quartzScheduler.isShutdown()) {
             quartzScheduler.shutdown();
         }
     }
@@ -127,6 +127,37 @@ public final class SchedulerService {
         }
     }
 
+    public void syncJobTigger(Long jobId, ExecuteService executeService) throws SchedulerException {
+        JobVo job = jobService.getJobVoById(jobId);
+
+        /**
+         * 从crontab或者quartz里删除任务
+         */
+        opencronCollector.removeTask(job.getJobId());
+        remove(job.getJobId());
+
+        //job已经被删除..
+        if (job.getDeleted()) {
+            return;
+        }
+
+        job.setAgent(agentService.getAgent(job.getAgentId()));
+        //自动执行
+        if (Opencron.ExecType.AUTO.getStatus().equals(job.getExecType())) {
+            if (Opencron.CronType.QUARTZ.getType().equals(job.getCronType())) {
+                /**
+                 * 将作业加到quartz任务计划
+                 */
+                put(job, executeService);
+            } else {
+                /**
+                 * 将作业加到crontab任务计划
+                 */
+                opencronCollector.addTask(job);
+            }
+        }
+    }
+
     public void initCrontab() {
         if (this.crontabScheduler == null) {
             this.crontabScheduler = new it.sauronsoftware.cron4j.Scheduler();
@@ -137,40 +168,13 @@ public final class SchedulerService {
         this.crontabScheduler.start();
     }
 
-
-    public void syncJobTigger(Long jobId,ExecuteService executeService) throws SchedulerException {
-        JobVo job = jobService.getJobVoById(jobId);
-        job.setAgent(agentService.getAgent(job.getAgentId()));
-
-        /**
-         * 从crontab或者quartz里删除任务
-         */
-        opencronCollector.removeTask(job.getJobId());
-        remove(job.getJobId());
-
-        //自动执行
-        if ( Opencron.ExecType.AUTO.getStatus().equals(job.getExecType()) ){
-            if (Opencron.CronType.QUARTZ.getType().equals(job.getCronType())){
-                /**
-                 * 将作业加到quartz任务计划
-                 */
-                put(job, executeService);
-            }else {
-                /**
-                 * 将作业加到crontab任务计划
-                 */
-                opencronCollector.addTask(job);
-            }
-        }
-    }
-
     public void initQuartz(Job jobExecutor) throws SchedulerException {
         //quartz job
         logger.info("[opencron] init quartzJob...");
         List<JobVo> jobs = jobService.getJobVo(Opencron.ExecType.AUTO, Opencron.CronType.QUARTZ);
         for (JobVo job : jobs) {
             try {
-                put(job,jobExecutor);
+                put(job, jobExecutor);
             } catch (SchedulerException e) {
                 e.printStackTrace();
             }

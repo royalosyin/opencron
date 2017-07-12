@@ -22,13 +22,13 @@
 
 package org.opencron.server.service;
 
+import org.opencron.common.job.Opencron;
 import org.opencron.server.domain.Config;
 import org.opencron.server.domain.Log;
 import org.opencron.server.domain.User;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import org.apache.commons.mail.HtmlEmail;
-import org.opencron.common.job.Opencron;
 import org.opencron.common.utils.CommonUtils;
 import org.opencron.common.utils.DateUtils;
 import org.opencron.common.utils.HttpUtils;
@@ -55,9 +55,6 @@ public class NoticeService {
     @Autowired
     private HomeService homeService;
 
-    @Autowired
-    private UserService userService;
-
     private Template template;
 
     private Logger logger = LoggerFactory.getLogger(getClass());
@@ -65,7 +62,7 @@ public class NoticeService {
     @PostConstruct
     public void initConfig() throws Exception {
         Configuration configuration = new Configuration();
-        File file = new File(getClass().getClassLoader().getResource("/").getPath().replace("classes","common"));
+        File file = new File(getClass().getClassLoader().getResource("/").getPath().replace("classes","layouts"));
         configuration.setDirectoryForTemplateLoading(file);
         configuration.setDefaultEncoding("UTF-8");
         this.template = configuration.getTemplate("email.template");
@@ -110,47 +107,32 @@ public class NoticeService {
         log.setIsread(false);
         log.setAgentId(workId);
         log.setMessage(content);
-        //手机号和邮箱都为空则发送站内信
-        if ( CommonUtils.isEmpty(emailAddress,mobiles) ) {
-            log.setType(Opencron.MsgType.WEBSITE.getValue());
-            log.setSendTime(new Date());
-            homeService.saveLog(log);
-            return;
-        }
-
-        /**
-         * 发送邮件并且记录发送日志
-         */
-        boolean emailSuccess = false;
-        boolean mobileSuccess = false;
+        log.setSendTime(new Date());
 
         Config config = configService.getSysConfig();
-        try {
-            log.setType(Opencron.MsgType.EMAIL.getValue());
-            HtmlEmail email = new HtmlEmail();
-            email.setCharset("UTF-8");
-            email.setHostName(config.getSmtpHost());
-            email.setSslSmtpPort(config.getSmtpPort().toString());
-            email.setAuthentication(config.getSenderEmail(), config.getPassword());
-            email.setFrom(config.getSenderEmail());
-            email.setSubject("opencron监控告警");
-            email.setHtmlMsg(msgToHtml(content));
-            email.addTo(emailAddress.split(","));
-            email.send();
-            emailSuccess = true;
-            /**
-             * 记录邮件发送记录
-             */
-            log.setReceiver(emailAddress);
-            log.setSendTime(new Date());
-            homeService.saveLog(log);
-        }catch (Exception e) {
-            e.printStackTrace(System.err);
+
+        //发送邮件
+        if (CommonUtils.notEmpty(emailAddress)) {
+            try {
+                log.setType(Opencron.MsgType.EMAIL.getValue());
+                HtmlEmail email = new HtmlEmail();
+                email.setCharset("UTF-8");
+                email.setHostName(config.getSmtpHost());
+                email.setSslSmtpPort(config.getSmtpPort().toString());
+                email.setAuthentication(config.getSenderEmail(), config.getPassword());
+                email.setFrom(config.getSenderEmail());
+                email.setSubject("opencron监控告警");
+                email.setHtmlMsg(msgToHtml(content));
+                email.addTo(emailAddress.split(","));
+                email.send();
+                log.setReceiver(emailAddress);
+                homeService.saveLog(log);
+            }catch (Exception e) {
+                e.printStackTrace(System.err);
+            }
         }
 
-        /**
-         * 发送短信并且记录发送日志
-         */
+        //发送短信
         try {
             for (String mobile : mobiles.split(",")) {
                 //发送POST请求
@@ -160,29 +142,24 @@ public class NoticeService {
                 String message = HttpUtils.doPost(url, postData, "UTF-8");
                 log.setResult(message);
                 logger.info(message);
-                mobileSuccess = true;
+                log.setReceiver(mobiles);
+                log.setType(Opencron.MsgType.SMS.getValue());
+                log.setSendTime(new Date());
+                homeService.saveLog(log);
             }
-            log.setReceiver(mobiles);
-            log.setType(Opencron.MsgType.SMS.getValue());
-            log.setSendTime(new Date());
-            homeService.saveLog(log);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
 
-        /**
-         * 短信和邮件都发送失败,则发送站内信
-         */
-        if( !mobileSuccess && !emailSuccess ) {
-            log.setType(Opencron.MsgType.WEBSITE.getValue());
-            log.setSendTime(new Date());
-            for(User user:users) {
-                //一一发送站内信
-                log.setUserId(user.getUserId());
-                log.setReceiver(user.getUserName());
-                homeService.saveLog(log);
-            }
+        //发送站内信
+        log.setType(Opencron.MsgType.WEBSITE.getValue());
+        for(User user:users) {
+            //一一发送站内信
+            log.setUserId(user.getUserId());
+            log.setReceiver(user.getUserName());
+            homeService.saveLog(log);
         }
+
 
     }
 

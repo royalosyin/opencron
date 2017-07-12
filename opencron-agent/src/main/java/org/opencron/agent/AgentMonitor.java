@@ -28,11 +28,15 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.listener.ConnectListener;
 import com.corundumstudio.socketio.listener.DisconnectListener;
 import org.opencron.common.job.Monitor;
-import org.opencron.common.utils.*;
+import org.opencron.common.utils.CommandUtils;
+import org.opencron.common.utils.DateUtils;
+import org.opencron.common.utils.LoggerFactory;
+import org.opencron.common.utils.ReflectUitls;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.Format;
 import java.util.*;
@@ -40,9 +44,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.opencron.common.utils.CommonUtils.*;
-
 import static org.opencron.common.utils.CommandUtils.executeShell;
+import static org.opencron.common.utils.CommonUtils.toLong;
 
 /**
  * Created by benjobs on 16/4/7.
@@ -110,7 +113,6 @@ public class AgentMonitor {
         stop = false;
         logger.debug("[opencron] server started @ {}", port);
     }
-
 
     public Monitor monitor() {
 
@@ -188,8 +190,9 @@ public class AgentMonitor {
 
     public String getCpuData(Monitor.Info info) {
         //cpu usage report..
-        Long sysIdle = toLong(info.getCpu().getId2()) - toLong(info.getCpu().getId1());
-        Long total = toLong(info.getCpu().getTotal2()) - toLong(info.getCpu().getTotal1());
+
+        Long sysIdle = toLong(new BigDecimal(info.getCpu().getId2()).toPlainString()) - toLong(new BigDecimal(info.getCpu().getId1()).toPlainString());
+        Long total = toLong(new BigDecimal(info.getCpu().getTotal2()).toPlainString()) - toLong(new BigDecimal(info.getCpu().getTotal1()).toPlainString());
 
         Map<String, String> cpuData = new HashMap<String, String>(0);
 
@@ -238,29 +241,13 @@ public class AgentMonitor {
         Scanner scanner = new Scanner(info.getDisk());
         List<String> tmpArray = new ArrayList<String>(0);
 
-        int usedIndex = 0, availIndex = 0, mountedIndex = 0, len;
+        int usedIndex = 2, availIndex = 3, mountedIndex = 5;
         /**
          * title index....
          */
         String title = scanner.nextLine();
         List<String> strArray = Arrays.asList(title.split("\\s+"));
-        len = strArray.size();//注意shell脚本中已经删除了Mounted on中的空格.
-        /**
-         * Size Used Avail Use% Mounted
-         */
-        for (int i = 0; i < strArray.size(); i++) {
-            String key = strArray.get(i);
-            if (key.equals("Used")) {
-                usedIndex = i;
-            }
-            if (key.equals("Avail")) {
-                availIndex = i;
-            }
-            if (key.equals("Mounted")) {
-                mountedIndex = i;
-            }
-        }
-
+        int len = strArray.size();
         /**
          * data.....
          *
@@ -296,16 +283,19 @@ public class AgentMonitor {
         Double freeTotal = 0D;
         for (Map.Entry<String, String> entry : map.entrySet()) {
             Map<String, String> disk = new HashMap<String, String>();
+            try {
+                Double used = generateDiskSpace(entry.getValue().split(",")[0]);
+                Double free = generateDiskSpace(entry.getValue().split(",")[1]);
 
-            Double used = generateDiskSpace(entry.getValue().split(",")[0]);
-            Double free = generateDiskSpace(entry.getValue().split(",")[1]);
-
-            usedTotal += used;
-            freeTotal += free;
-            disk.put("disk", entry.getKey());
-            disk.put("used", format.format(used));
-            disk.put("free", format.format(free));
-            disks.add(disk);
+                usedTotal += used;
+                freeTotal += free;
+                disk.put("disk", entry.getKey());
+                disk.put("used", format.format(used));
+                disk.put("free", format.format(free));
+                disks.add(disk);
+            }catch (NumberFormatException e) {
+                continue;
+            }
         }
 
         Map<String, String> disk = new HashMap<String, String>();
@@ -463,6 +453,5 @@ public class AgentMonitor {
     public boolean stoped() {
         return stop;
     }
-
 
 }

@@ -22,10 +22,6 @@
 package org.opencron.server.job;
 
 import com.alibaba.fastjson.JSON;
-import org.opencron.common.utils.CommonUtils;
-import org.opencron.common.utils.ParamsMap;
-import org.opencron.server.domain.Agent;
-import org.opencron.server.service.AgentService;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -34,16 +30,19 @@ import org.opencron.common.job.Action;
 import org.opencron.common.job.Opencron;
 import org.opencron.common.job.Request;
 import org.opencron.common.job.Response;
+import org.opencron.common.utils.CommonUtils;
+import org.opencron.common.utils.ParamsMap;
+import org.opencron.server.domain.Agent;
+import org.opencron.server.service.AgentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 
 /**
- *
  * agent OpencronCaller
  *
- * @author  <a href="mailto:benjobs@qq.com">B e n</a>
+ * @author <a href="mailto:benjobs@qq.com">B e n</a>
  * @version 1.0
  * @date 2016-03-27
  */
@@ -54,16 +53,16 @@ public class OpencronCaller {
     @Autowired
     private AgentService agentService;
 
-    public Response call(Request request,Agent agent) throws Exception {
+    public Response call(Request request, Agent agent) throws Exception {
 
         //代理...
         if (agent.getProxy() == Opencron.ConnType.PROXY.getType()) {
             ParamsMap proxyParams = new ParamsMap();
             proxyParams.put(
-                    "proxyHost",request.getHostName(),
-                    "proxyPort",request.getPort(),
-                    "proxyAction",request.getAction().name(),
-                    "proxyPassword",request.getPassword()
+                    "proxyHost", request.getHostName(),
+                    "proxyPort", request.getPort(),
+                    "proxyAction", request.getAction().name(),
+                    "proxyPassword", request.getPassword()
             );
 
             if (CommonUtils.notEmpty(request.getParams())) {
@@ -83,25 +82,25 @@ public class OpencronCaller {
          * ping的超时设置为5毫秒,其他默认
          */
         if (request.getAction().equals(Action.PING)) {
-            transport = new TSocket(request.getHostName(),request.getPort(),1000*10);
-        }else {
-            transport = new TSocket(request.getHostName(),request.getPort());
+            transport = new TSocket(request.getHostName(), request.getPort(), 1000 * 10);
+        } else {
+            transport = new TSocket(request.getHostName(), request.getPort());
         }
         TProtocol protocol = new TBinaryProtocol(transport);
         Opencron.Client client = new Opencron.Client(protocol);
         transport.open();
 
         Response response = null;
-        for(Method method:client.getClass().getMethods()){
+        for (Method method : client.getClass().getMethods()) {
             if (method.getName().equalsIgnoreCase(request.getAction().name())) {
                 response = (Response) method.invoke(client, request);
                 break;
             }
         }
 
-       transport.flush();
-       transport.close();
-       return response;
-   }
+        transport.flush();
+        transport.close();
+        return response;
+    }
 
 }

@@ -29,11 +29,13 @@ import org.opencron.server.domain.User;
 import org.hibernate.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Created by ChenHui on 2016/2/17.
  */
 @Service
+@Transactional
 public class ConfigService {
 
     @Autowired
@@ -46,13 +48,14 @@ public class ConfigService {
         return queryDao.sqlUniqueQuery(Config.class, "SELECT * FROM T_CONFIG WHERE configId = 1");
     }
 
+    
     public void update(Config config) {
         queryDao.save(config);
     }
 
     public void initDataBase() {
         long count = queryDao.getCountBySql("SELECT COUNT(1) FROM T_CONFIG");
-        if (count==0) {
+        if (count == 0) {
 
             Session session = queryDao.getSessionFactory().openSession();
             session.getTransaction().begin();

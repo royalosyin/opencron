@@ -6,8 +6,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
-
     <script type="text/javascript">
 
         function save(){
@@ -112,13 +110,14 @@
     </script>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
+
+<body>
 
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -137,7 +136,7 @@
 
     <div class="block-area" id="basic">
         <div class="tile p-15">
-            <form class="form-horizontal" role="form"  id="user" action="${contextPath}/user/edit" method="post"><br>
+            <form class="form-horizontal" role="form"  id="user" action="${contextPath}/user/edit.do" method="post"><br>
                 <input type="hidden" name="csrf" value="${csrf}">
                 <input type="hidden" id="userId" name="userId" value="${u.userId}">
                 <div class="form-group">
@@ -152,7 +151,7 @@
                 <div class="form-group">
                     <label for="role" class="col-lab control-label"><i class="glyphicon glyphicon-random"></i>&nbsp;&nbsp;用户角色：</label>
                     <div class="col-md-10">
-                        <select id="role" name="roleId" class="form-control m-b-10 input-sm">
+                        <select style="height: 30px;" id="role" name="roleId" class="form-control m-b-10 input-sm">
                             <c:forEach var="r" items="${role}">
                                 <option value="${r.roleId}" ${r.roleId eq u.roleId ? 'selected' : ''}>${r.roleName}</option>
                             </c:forEach>
@@ -218,6 +217,7 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

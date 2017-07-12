@@ -26,9 +26,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import org.opencron.common.utils.CommonUtils;
-
+import java.util.Set;
 import javax.persistence.*;
 
 @Entity
@@ -38,6 +36,9 @@ public class Agent implements Serializable {
     @Id
     @GeneratedValue
     private Long agentId;
+
+    //执行器机器的唯一id(当前取的是机器的MAC地址)
+    private String machineId;
 
     //代理执行器的Id
     private Long proxyAgent;
@@ -53,11 +54,15 @@ public class Agent implements Serializable {
     private String emailAddress;
     private String mobiles;
     private Boolean status;
-    private Date failTime;
+    private Boolean deleted;//是否删除
+    private Date notifyTime;//失败后发送通知告警的时间
     private String comment;
     private Date updateTime;
 
     private Integer proxy;//是否需要代理
+
+    @ManyToMany(mappedBy="agents")
+    private Set<Group> groups;//对应的agentGroup
 
     /**
      * 新增一个得到task任务个数的字段，供页面显示使用
@@ -67,6 +72,30 @@ public class Agent implements Serializable {
 
     @Transient
     private List<User> users = new ArrayList<User>();
+
+    public Long getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(Long agentId) {
+        this.agentId = agentId;
+    }
+
+    public String getMachineId() {
+        return machineId;
+    }
+
+    public void setMachineId(String machineId) {
+        this.machineId = machineId;
+    }
+
+    public Long getProxyAgent() {
+        return proxyAgent;
+    }
+
+    public void setProxyAgent(Long proxyAgent) {
+        this.proxyAgent = proxyAgent;
+    }
 
     public String getIp() {
         return ip;
@@ -97,7 +126,7 @@ public class Agent implements Serializable {
     }
 
     public void setPassword(String password) {
-        this.password = CommonUtils.notEmpty(password) ? password.trim().toLowerCase() : "";
+        this.password = password;
     }
 
     public Boolean getWarning() {
@@ -132,12 +161,20 @@ public class Agent implements Serializable {
         this.status = status;
     }
 
-    public Date getFailTime() {
-        return failTime;
+    public Boolean getDeleted() {
+        return deleted;
     }
 
-    public void setFailTime(Date failTime) {
-        this.failTime = failTime;
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public Date getNotifyTime() {
+        return notifyTime;
+    }
+
+    public void setNotifyTime(Date notifyTime) {
+        this.notifyTime = notifyTime;
     }
 
     public String getComment() {
@@ -156,30 +193,6 @@ public class Agent implements Serializable {
         this.updateTime = updateTime;
     }
 
-    public Integer getTaskCount() {
-        return taskCount;
-    }
-
-    public void setTaskCount(Integer taskCount) {
-        this.taskCount = taskCount;
-    }
-
-    public Long getAgentId() {
-        return agentId;
-    }
-
-    public void setAgentId(Long agentId) {
-        this.agentId = agentId;
-    }
-
-    public Long getProxyAgent() {
-        return proxyAgent;
-    }
-
-    public void setProxyAgent(Long proxyAgent) {
-        this.proxyAgent = proxyAgent;
-    }
-
     public Integer getProxy() {
         return proxy;
     }
@@ -188,14 +201,20 @@ public class Agent implements Serializable {
         this.proxy = proxy;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+    public Set<Group> getGroups() {
+        return groups;
+    }
 
-        Agent agent = (Agent) o;
+    public void setGroups(Set<Group> groups) {
+        this.groups = groups;
+    }
 
-        return agentId.equals(agent.agentId);
+    public Integer getTaskCount() {
+        return taskCount;
+    }
+
+    public void setTaskCount(Integer taskCount) {
+        this.taskCount = taskCount;
     }
 
     public List<User> getUsers() {
@@ -206,15 +225,27 @@ public class Agent implements Serializable {
         this.users = users;
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Agent agent = (Agent) o;
+
+        return getAgentId() != null ? getAgentId().equals(agent.getAgentId()) : agent.getAgentId() == null;
+    }
+
     @Override
     public int hashCode() {
-        return agentId.hashCode();
+        return getAgentId() != null ? getAgentId().hashCode() : 0;
     }
 
     @Override
     public String toString() {
         return "Agent{" +
                 "agentId=" + agentId +
+                ", machineId='" + machineId + '\'' +
                 ", proxyAgent=" + proxyAgent +
                 ", ip='" + ip + '\'' +
                 ", port=" + port +
@@ -224,11 +255,14 @@ public class Agent implements Serializable {
                 ", emailAddress='" + emailAddress + '\'' +
                 ", mobiles='" + mobiles + '\'' +
                 ", status=" + status +
-                ", failTime=" + failTime +
+                ", deleted=" + deleted +
+                ", notifyTime=" + notifyTime +
                 ", comment='" + comment + '\'' +
                 ", updateTime=" + updateTime +
                 ", proxy=" + proxy +
+                ", groups=" + groups +
                 ", taskCount=" + taskCount +
+                ", users=" + users +
                 '}';
     }
 }

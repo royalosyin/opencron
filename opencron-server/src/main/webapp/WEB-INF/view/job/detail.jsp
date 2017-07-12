@@ -6,16 +6,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
 
 </head>
-<jsp:include page="/WEB-INF/common/top.jsp"/>
 
+<body>
 <!-- Content -->
 <section id="content" class="container">
 
     <!-- Messages Drawer -->
-    <jsp:include page="/WEB-INF/common/message.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/message.jsp"/>
 
     <!-- Breadcrumb -->
     <ol class="breadcrumb hidden-xs">
@@ -49,7 +48,7 @@
             </tr>
             <tr>
                 <td class="item"><i class="glyphicon glyphicon-leaf"></i>&nbsp;执&nbsp;行&nbsp;&nbsp;器：</td>
-                <td>${job.agentName}</td>
+                <td><a href="${contextPath}/agent/detail/${job.agentId}.htm?csrf=${csrf}">${job.agentName}</a></td>
             </tr>
             <tr>
                 <td class="item"><i class="glyphicon glyphicon-info-sign"></i>&nbsp;运行模式：</td>
@@ -104,6 +103,7 @@
     </div>
 
 </section>
-<br/><br/>
 
-<jsp:include page="/WEB-INF/common/footer.jsp"/>
+</body>
+
+</html>

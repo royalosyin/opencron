@@ -22,23 +22,24 @@
 package org.opencron.server.controller;
 
 import org.opencron.common.job.Opencron;
-import org.opencron.common.utils.WebUtils;
 import org.opencron.server.domain.Agent;
+import it.sauronsoftware.cron4j.SchedulingPattern;
 import org.opencron.server.service.AgentService;
 import org.opencron.server.service.ExecuteService;
-import it.sauronsoftware.cron4j.SchedulingPattern;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
 
 @Controller
 @RequestMapping("/verify")
-public class VerifyController  extends BaseController{
+public class VerifyController extends BaseController {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -48,17 +49,18 @@ public class VerifyController  extends BaseController{
     @Autowired
     private AgentService agentService;
 
-    @RequestMapping("/exp")
-    public void validateCronExp(Integer cronType, String cronExp, HttpServletResponse response) {
+    @RequestMapping(value = "/exp.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean validateCronExp(Integer cronType, String cronExp) {
         boolean pass = false;
         if (cronType == 0) pass = SchedulingPattern.validate(cronExp);
         if (cronType == 1) pass = CronExpression.isValidExpression(cronExp);
-        WebUtils.writeHtml(response, pass ? "success" : "failure");
+        return pass;
     }
 
-    @RequestMapping("/ping")
-    public void validatePing(int proxy, Long proxyId, String ip, Integer port, String password, HttpServletResponse response) {
-        String pass = "failure";
+    @RequestMapping(value = "/ping.do",method= RequestMethod.POST)
+    @ResponseBody
+    public boolean validatePing(int proxy, Long proxyId, String ip, Integer port, String password) {
         Agent agent = new Agent();
         agent.setProxy(proxy);
         agent.setIp(ip);
@@ -70,8 +72,7 @@ public class VerifyController  extends BaseController{
             if (proxyId != null) {
                 Agent proxyAgent = agentService.getAgent(proxyId);
                 if (proxyAgent == null) {
-                    WebUtils.writeHtml(response, "failure");
-                    return;
+                    return false;
                 }
                 agent.setProxyAgent(proxyId);
                 //需要代理..
@@ -79,11 +80,34 @@ public class VerifyController  extends BaseController{
             }
         }
         boolean ping = executeService.ping(agent);
+
         if (!ping) {
             logger.error(String.format("validate ip:%s,port:%s cannot ping!", agent.getIp(), port));
-        } else {
-            pass = "success";
         }
-        WebUtils.writeHtml(response, pass);
+        return ping;
+    }
+
+    @RequestMapping(value = "/guid.do",method= RequestMethod.POST)
+    @ResponseBody
+    public String getGuid(int proxy, Long proxyId, String ip, Integer port, String password, HttpServletResponse response) {
+        Agent agent = new Agent();
+        agent.setProxy(proxy);
+        agent.setIp(ip);
+        agent.setPort(port);
+        agent.setPassword(password);
+
+        if (proxy == Opencron.ConnType.PROXY.getType()) {
+            agent.setProxy(Opencron.ConnType.CONN.getType());
+            if (proxyId != null) {
+                Agent proxyAgent = agentService.getAgent(proxyId);
+                if (proxyAgent == null) {
+                    return null;
+                }
+                agent.setProxyAgent(proxyId);
+                //需要代理..
+                agent.setProxy(Opencron.ConnType.PROXY.getType());
+            }
+        }
+       return executeService.guid(agent);
     }
 }

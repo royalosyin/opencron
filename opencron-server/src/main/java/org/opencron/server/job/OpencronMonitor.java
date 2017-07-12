@@ -47,7 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 @Component
-public class OpencronMonitor implements Serializable{
+public class OpencronMonitor implements Serializable {
 
     private final Logger logger = LoggerFactory.getLogger(OpencronMonitor.class);
 
@@ -63,7 +63,7 @@ public class OpencronMonitor implements Serializable{
 
     private Thread connWatchDog;
 
-    private long keepAliveDelay = 1000 * 10;//10秒一次心跳
+    private long keepAliveDelay = 1000 * 5;//5秒一次心跳
 
     @Autowired
     private AgentService agentService;
@@ -108,21 +108,26 @@ public class OpencronMonitor implements Serializable{
             public void run() {
                 List<Agent> agents = agentService.getAll();
                 if (agents.size() != successConnStatus.size()) {
-                    for (Agent agent : agents) {
+                    for (Agent agent: agents) {
                         if (successConnStatus.get(agent) == null) {
-                            boolean ping = executeService.ping(agent);
-                            //ping失败...
-                            if(!ping) {
-                                if (CommonUtils.isEmpty(agent.getFailTime()) || new Date().getTime() - agent.getFailTime().getTime() >= configService.getSysConfig().getSpaceTime() * 60 * 1000) {
+                            boolean ping =  executeService.ping(agent);
+                            if (ping) {
+                                agent.setStatus(true);
+                                agentService.merge(agent);
+                            }else {
+
+                                if (agent.getStatus()) {
+                                    agent.setStatus(false);
+                                    agentService.merge(agent);
+                                }
+
+                                if (CommonUtils.isEmpty(agent.getNotifyTime()) || new Date().getTime() - agent.getNotifyTime().getTime() >= configService.getSysConfig().getSpaceTime() * 60 * 1000) {
                                     noticeService.notice(agent);
                                     //记录本次任务失败的时间
-                                    agent.setFailTime(new Date());
-                                    agent.setStatus(false);
-                                    agentService.addOrUpdate(agent);
-                                }else if (agent.getStatus()) {
-                                    agent.setStatus(false);
-                                    agentService.addOrUpdate(agent);
+                                    agent.setNotifyTime(new Date());
+                                    agentService.merge(agent);
                                 }
+
                             }
                         }
                     }
@@ -136,26 +141,26 @@ public class OpencronMonitor implements Serializable{
                         boolean ping = executeService.ping(agent);
                         if (ping) {
                             agent.setStatus(true);
-                            agentService.addOrUpdate(agent);
+                            agentService.merge(agent);
                             continue;
                         }
                     }
                     if (System.currentTimeMillis() - lastAliveTime > OpencronMonitor.this.keepAliveDelay) {
-                        if (CommonUtils.isEmpty(agent.getFailTime()) || new Date().getTime() - agent.getFailTime().getTime() >= configService.getSysConfig().getSpaceTime() * 60 * 1000) {
+                        if (CommonUtils.isEmpty(agent.getNotifyTime()) || new Date().getTime() - agent.getNotifyTime().getTime() >= configService.getSysConfig().getSpaceTime() * 60 * 1000) {
+                            agent.setStatus(false);
                             noticeService.notice(agent);
                             //记录本次任务失败的时间
-                            agent.setFailTime(new Date());
-                            agent.setStatus(false);
-                            agentService.addOrUpdate(agent);
+                            agent.setNotifyTime(new Date());
+                            agentService.merge(agent);
                         }
                         if (agent.getStatus()) {
                             agent.setStatus(false);
-                            agentService.addOrUpdate(agent);
+                            agentService.merge(agent);
                         }
                     } else {
                         if (!agent.getStatus()) {
                             agent.setStatus(true);
-                            agentService.addOrUpdate(agent);
+                            agentService.merge(agent);
                         }
                     }
                 }

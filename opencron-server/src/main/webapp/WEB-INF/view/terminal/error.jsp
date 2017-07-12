@@ -2,12 +2,18 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="cron" uri="http://www.opencron.org" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%
+    String port = request.getServerPort() == 80 ? "" : (":"+request.getServerPort());
+    String path = request.getContextPath().replaceAll("/$","");
+    String contextPath = request.getScheme()+"://"+request.getServerName()+port+path;
+    pageContext.setAttribute("contextPath",contextPath);
+%>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="shortcut icon" href="${contextPath}/img/terminal.png"/>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/resource.jsp"/>
+    <link rel="shortcut icon" href="${contextPath}/static/img/terminal.png"/>
     <style type="text/css">
         .error_msg {
             color: red;
@@ -25,7 +31,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" onclick="closeWin();" aria-hidden="true">&times;</button>
+                <button class="close btn-float" data-dismiss="modal" aria-hidden="true" onclick="closeWin();"><i class="md md-close"></i></button>
                 <h4 id="sshTitle" style="color: red;font-size: 13px;">用户名密码错误</h4>
             </div>
             <div class="modal-body">
@@ -183,7 +189,7 @@
             $.ajax({
                 headers:{"csrf":"${csrf}"},
                 type: "POST",
-                url: "${contextPath}/terminal/save",
+                url: "${contextPath}/terminal/save.do",
                 data: {
                     "id": ${terminal.id},
                     "name": name,
@@ -198,7 +204,7 @@
                     $("#sshform")[0].reset();
                     console.log(status)
                     if (status == "success") {
-                        window.location.href="${contextPath}/terminal/ssh2?id=${terminal.id}&csrf=${csrf}";
+                        window.location.href="${contextPath}/terminal/ssh2.htm?id=${terminal.id}&csrf=${csrf}";
                     } else {
                         window.setTimeout(function () {
                             $("#sshModal").modal("show");

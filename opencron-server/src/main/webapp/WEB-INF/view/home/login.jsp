@@ -1,13 +1,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
-<%
-    String port = request.getServerPort() == 80 ? "" : (":"+request.getServerPort());
-    String path = request.getContextPath().replaceAll("/$","");
-    String contextPath = request.getScheme()+"://"+request.getServerName()+port+path;
-    pageContext.setAttribute("contextPath",contextPath);
-%>
-
 <!DOCTYPE html>
 
 <!--[if IE 9 ]><html class="ie9"><![endif]-->
@@ -17,11 +10,11 @@
     <meta name="author" content="author:benjobs,wechat:wolfboys,Created by  2016" />
 
     <title>opencron</title>
-    <jsp:include page="/WEB-INF/common/resource.jsp"/>
+    <jsp:include page="/WEB-INF/layouts/resource.jsp"/>
     <script type="text/javascript">
 
         <c:if test="${!empty opencron_user}">
-            window.location.href="${contextPath}/home?csrf=${csrf}";
+            window.location.href="${contextPath}/dashboard.htm?csrf=${csrf}";
         </c:if>
 
         $(document).ready(function(){
@@ -365,7 +358,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "${contextPath}/login",
+                url: "${contextPath}/login.do",
                 data: data,
                 success: function (data) {
                     if(data.msg){
@@ -430,7 +423,7 @@
             $.ajax({
                 headers:{"csrf":$("#csrf").val()},
                 type:"POST",
-                url:"${contextPath}/user/editpwd",
+                url:"${contextPath}/user/pwd.do",
                 data:{
                     "id":id,
                     "pwd0":calcMD5($("#password").val()),
@@ -438,7 +431,7 @@
                     "pwd2":calcMD5(pwd2)
                 },
                 success:function(data){
-                    if (data == "success"){
+                    if (data == "true"){
                         $('#pwdModal').modal('hide');
                         alertMsg("修改成功,请重新登录");
                         $("#btnLogin").prop("disabled",false);
@@ -470,7 +463,7 @@
 <section id="login">
     <header>
         <h1 style="width: 250px">
-            <img src="${contextPath}/img/opencron.png">
+            <img src="${contextPath}/static/img/opencron.png">
         </h1>
         <h4 style="margin-top: 5px;">Welcome to opencron,Let's crontab easy</h4>
     </header>
@@ -498,7 +491,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button class="close btn-float" data-dismiss="modal" aria-hidden="true"><i class="md md-close"></i></button>
                     <h4>修改默认密码</h4>
                 </div>
                 <div class="modal-body">
@@ -540,31 +533,31 @@
     <ul class="browsers">
         <li>
             <a href="https://www.google.com/intl/en/chrome/browser/">
-                <img src="${contextPath}/img/browsers/chrome.png" alt="">
+                <img src="${contextPath}/static/img/browsers/chrome.png" alt="">
                 <div>Google Chrome</div>
             </a>
         </li>
         <li>
             <a href="http://www.mozilla.org/en-US/firefox/new/">
-                <img src="${contextPath}/img/browsers/firefox.png" alt="">
+                <img src="${contextPath}/static/img/browsers/firefox.png" alt="">
                 <div>Mozilla Firefox</div>
             </a>
         </li>
         <li>
             <a href="http://www.opera.com/computer/windows">
-                <img src="${contextPath}/img/browsers/opera.png" alt="">
+                <img src="${contextPath}/static/img/browsers/opera.png" alt="">
                 <div>Opera</div>
             </a>
         </li>
         <li>
             <a href="http://safari.en.softonic.com/">
-                <img src="${contextPath}/img/browsers/safari.png" alt="">
+                <img src="${contextPath}/static/img/browsers/safari.png" alt="">
                 <div>Safari</div>
             </a>
         </li>
         <li>
             <a href="http://windows.microsoft.com/en-us/internet-explorer/downloads/ie-10/worldwide-languages">
-                <img src="${contextPath}/img/browsers/ie.png" alt="">
+                <img src="${contextPath}/static/img/browsers/ie.png" alt="">
                 <div>Internet Explorer(New)</div>
             </a>
         </li>

@@ -24,7 +24,8 @@ package org.opencron.common.job;
 import com.alibaba.fastjson.annotation.JSONType;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by benjobs on 16/4/7.
@@ -203,7 +204,6 @@ public class Monitor implements Serializable {
         }
     }
 
-
     public static class Iostat implements Serializable {
         private String device;// device: 设备
         private String rrqm;// rrqm/s:  每秒进行 merge 的读操作数目。即 rmerge/s
@@ -314,8 +314,6 @@ public class Monitor implements Serializable {
             this.util = util;
         }
     }
-
-
 
     public static class Conf implements Serializable {
         private String hostname;
